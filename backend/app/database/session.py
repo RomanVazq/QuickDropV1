@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # 1. Definimos la URL con el driver pg8000 para evitar errores de tildes en Windows
-DATABASE_URL = "postgresql+pg8000://postgres:root@127.0.0.1:5432/saas_db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 2. Creamos el motor de conexión
 engine = create_engine(DATABASE_URL)
