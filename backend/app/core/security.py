@@ -5,7 +5,7 @@ from jose import jwt
 from typing import Optional
 
 # Configuración básica
-SECRET_KEY = "TU_LLAVE_SECRETA_SUPER_SEGURA" # Cambia esto por una variable de entorno
+SECRET_KEY = os.getenv("SECRET_KEY") 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
