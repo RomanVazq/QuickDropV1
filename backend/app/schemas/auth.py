@@ -5,3 +5,4 @@ class BusinessRegister(BaseModel):
     password: str
     business_name: str
     slug: str
+    phone: str
