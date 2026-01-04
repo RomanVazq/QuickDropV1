@@ -4,24 +4,34 @@ from datetime import datetime, timedelta
 from jose import jwt
 from typing import Optional
 import os
+import logging
+
+# 1. Silenciamos las advertencias de passlib para evitar logs innecesarios
+logging.getLogger("passlib").setLevel(logging.ERROR)
 
 # Configuración básica
-SECRET_KEY = os.getenv("SECRET_KEY") 
+SECRET_KEY = os.getenv("SECRET_KEY", "09d6e05391264c158e0632422791e813f416c148208740a3279c6575026e680a") 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# 2. Configuración robusta de CryptContext
+# Forzamos 'ident="2b"' para saltar la detección automática de bugs de passlib
+pwd_context = CryptContext(
+    schemes=["bcrypt"], 
+    deprecated="auto",
+    bcrypt__ident="2b"
+)
 
 def get_password_hash(password: str) -> str:
-    # 1. SHA-256 normaliza cualquier longitud a 64 caracteres
+    # SHA-256 normaliza cualquier longitud a 64 caracteres
     pre_hash = hashlib.sha256(password.encode()).hexdigest()
-    # 2. Bcrypt genera el hash final seguro
+    # Aseguramos que pase como string corto a passlib
     return pwd_context.hash(pre_hash)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # 1. Aplicamos el mismo SHA-256 a la contraseña que viene del usuario
+    # Aplicamos el mismo SHA-256 a la contraseña que viene del usuario
     pre_hash = hashlib.sha256(plain_password.encode()).hexdigest()
-    # 2. Comparamos con el hash guardado en la DB
+    # Comparamos con el hash guardado en la DB
     return pwd_context.verify(pre_hash, hashed_password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -29,7 +39,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    # Asegúrate de que SECRET_KEY no sea None
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
