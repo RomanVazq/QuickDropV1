@@ -19,7 +19,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/shop/:slug" element={
-          <ProtectedRoute><PublicShop /></ProtectedRoute>
+          <PublicShop />
           } />
         <Route path="/" element={<Login />} />
         <Route path="/admin" element={<ProtectedRoute><SuperAdmin /></ProtectedRoute>} />
