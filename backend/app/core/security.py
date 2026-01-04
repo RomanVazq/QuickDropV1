@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
 from typing import Optional
+import os
 
 # Configuración básica
 SECRET_KEY = os.getenv("SECRET_KEY") 
