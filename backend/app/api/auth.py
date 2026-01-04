@@ -53,7 +53,8 @@ def register_business(data: BusinessRegister, db: Session = Depends(get_db)):
     new_user = base.User(
         email=data.email,
         hashed_password=security.get_password_hash(data.password),
-        tenant_id=new_tenant.id
+        tenant_id=new_tenant.id,
+        phone=data.phone or None
     )
     db.add(new_user)
     db.commit()
