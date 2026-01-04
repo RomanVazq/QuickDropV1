@@ -26,7 +26,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
-    
+    phone = Column(String, nullable=True)
     tenant = relationship("Tenant", back_populates="users")
 
 class Item(Base):

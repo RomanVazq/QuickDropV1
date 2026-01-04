@@ -18,9 +18,11 @@ function App() {
             <Dashboard />
           </ProtectedRoute>
         } />
-        <Route path="/shop/:slug" element={<PublicShop />} />
+        <Route path="/shop/:slug" element={
+          <ProtectedRoute><PublicShop /></ProtectedRoute>
+          } />
         <Route path="/" element={<Login />} />
-        <Route path="/admin" element={<SuperAdmin />} />
+        <Route path="/admin" element={<ProtectedRoute><SuperAdmin /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
