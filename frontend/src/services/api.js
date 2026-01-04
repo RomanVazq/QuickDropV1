@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL+'/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
 // Esto inyectará el token automáticamente si existe
