@@ -106,10 +106,7 @@ def toggle_like(post_id: str, request: Request, db: Session = Depends(get_db)):
     existing = db.query(base.Like).filter_by(post_id=post_id, client_identifier=client_ip).first()
     
     if existing:
-        # Quitar Like
         db.delete(existing)
-        # Opcional: decrementar contador si lo agregaste al modelo Post
-        # post.likes_count -= 1 
         db.commit()
         return {"action": "unliked"}
     
@@ -124,3 +121,13 @@ def toggle_like(post_id: str, request: Request, db: Session = Depends(get_db)):
     db.add(new_like)
     db.commit()
     return {"action": "liked"}
+
+@router.delete("/posts/{post_id}")
+def delete_post(post_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_tenant_id)):
+    post = db.query(base.Post).filter(base.Post.id == post_id, base.Post.tenant_id == tenant_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post no encontrado o no tienes permiso para eliminarlo.")
+    
+    db.delete(post)
+    db.commit()
+    return {"detail": "Post eliminado correctamente."}  
