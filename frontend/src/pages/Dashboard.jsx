@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import OrdersDashboard from '../components/OrdersDashboard';
+import OrdersDashboard from './OrdersDashboard';
 import { 
   Package, ShoppingBag, Plus, Trash2, X, Pencil, Camera, 
   Grid3X3, Heart, Image as ImageIcon, MapPin, User, 
