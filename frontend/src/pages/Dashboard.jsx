@@ -62,7 +62,7 @@ const Dashboard = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: 0, description: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: 0, description: '', is_service: false });
   const [postContent, setPostContent] = useState("");
   const [file, setFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -148,7 +148,7 @@ const Dashboard = () => {
     setIsPostModalOpen(false); 
     setIsEditing(false);
     setEditingItem(null);
-    setNewProduct({ name: '', price: '', stock: 0, description: '' });
+    setNewProduct({ name: '', price: '', stock: 0, description: '', is_service: false });
     setPostContent(""); 
     setFile(null);
   };
@@ -295,6 +295,10 @@ const Dashboard = () => {
                 <input type="number" placeholder="Stock" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
               </div>
               <textarea placeholder="Descripción..." className="w-full p-4 bg-slate-50 rounded-2xl h-24 font-medium outline-none" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+              <div className="flex items-center space-x-2">
+                <input type="checkbox" name="Service" id="service-checkbox" checked={newProduct.is_service} onChange={e => setNewProduct({...newProduct, is_service: e.target.checked})} />
+                <label htmlFor="service-checkbox">¿Es un servicio?</label>
+              </div>
               <label className="block bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200 text-center cursor-pointer">
                 <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
                 <span className="text-[10px] font-black uppercase text-slate-400 line-clamp-1">{file ? file.name : "Foto del Producto"}</span>
