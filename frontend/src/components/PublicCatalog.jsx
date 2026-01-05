@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Minus, Heart } from 'lucide-react';
+import { Plus, Minus, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PublicCatalog = ({ 
   activeTab, 
@@ -7,84 +7,96 @@ const PublicCatalog = ({
   cart, 
   updateQuantity, 
   handleLike, 
-  likedPosts 
+  likedPosts,
+  // Props de paginación
+  currentPage,
+  setCurrentPage,
+  totalItems 
 }) => {
-if (activeTab === 'menu') {
-  return (
-    <div className="p-4 space-y-3 animate-in fade-in duration-300">
-      {data.items.map(item => {
-        const currentQty = cart[item.id] || 0;
-        const hasReachedLimit = currentQty >= item.stock;
-        const isOutOfStock = item.stock <= 0;
+  const itemsPerPage = 5;
 
-        return (
-          <div key={item.id} className={`flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm transition-opacity ${isOutOfStock ? 'opacity-60' : ''}`}>
-            
-            {/* Imagen con indicador de agotado */}
-            <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
-              <img 
-                src={item.image_url} 
-                className={`w-full h-full object-cover transition-transform ${isOutOfStock ? 'grayscale' : 'hover:scale-105'}`} 
-                alt={item.name} 
-              />
-              {isOutOfStock && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <span className="text-[10px] font-black text-white uppercase tracking-tighter">Sin Stock</span>
+  // VISTA DE PRODUCTOS (MENÚ)
+  if (activeTab === 'menu') {
+    return (
+      <div className="p-4 space-y-3 animate-in fade-in duration-300">
+        {data.items.map(item => {
+          const currentQty = cart[item.id] || 0;
+          const hasReachedLimit = currentQty >= item.stock;
+          const isOutOfStock = item.stock <= 0;
+
+          return (
+            <div key={item.id} className={`flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm transition-opacity ${isOutOfStock ? 'opacity-60' : ''}`}>
+              
+              {/* Imagen con badge de stock */}
+              <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                <img src={item.image_url} className={`w-full h-full object-cover ${isOutOfStock ? 'grayscale' : ''}`} alt={item.name} />
+                {isOutOfStock && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <span className="text-[10px] font-black text-white uppercase">Agotado</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Info Producto */}
+              <div className="flex-1">
+                <h3 className="font-bold text-slate-800 text-sm uppercase leading-tight">{item.name}</h3>
+                <p className="text-orange-600 font-black text-lg">${item.price}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                  {isOutOfStock ? 'No disponible' : `Stock: ${item.stock}`}
+                </p>
+              </div>
+
+              {/* Controles de Carrito */}
+              {!cart[item.id] ? (
+                <button 
+                  disabled={isOutOfStock}
+                  onClick={() => updateQuantity(item.id, 1)} 
+                  className={`p-4 rounded-xl ${isOutOfStock ? 'bg-slate-100 text-slate-300' : 'bg-slate-50 text-slate-900 active:bg-slate-200'}`}
+                >
+                  <Plus size={18} />
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 bg-slate-900 text-white p-1 rounded-xl">
+                  <button onClick={() => updateQuantity(item.id, -1)} className="p-2"><Minus size={14}/></button>
+                  <span className="font-black text-sm w-4 text-center">{currentQty}</span>
+                  <button 
+                    disabled={hasReachedLimit}
+                    onClick={() => updateQuantity(item.id, 1)} 
+                    className={`p-2 ${hasReachedLimit ? 'text-slate-600' : 'text-white'}`}
+                  >
+                    <Plus size={14}/>
+                  </button>
                 </div>
               )}
             </div>
-            
-            <div className="flex-1">
-              <h3 className="font-bold text-slate-800 text-sm uppercase leading-tight">{item.name}</h3>
-              <p className="text-orange-600 font-black text-lg">${item.price}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                {isOutOfStock ? 'No disponible' : `Stock: ${item.stock}`}
-              </p>
-            </div>
+          );
+        })}
 
-            {/* Lógica de Botones con validación */}
-            {!cart[item.id] ? (
-              <button 
-                disabled={isOutOfStock}
-                onClick={() => updateQuantity(item.id, 1)} 
-                className={`p-4 rounded-xl transition-all ${
-                  isOutOfStock 
-                    ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
-                    : 'bg-slate-50 text-slate-900 active:bg-slate-200'
-                }`}
-              >
-                <Plus size={18} />
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 bg-slate-900 text-white p-1 rounded-xl">
-                <button 
-                  onClick={() => updateQuantity(item.id, -1)} 
-                  className="p-2 hover:text-orange-400 transition-colors"
-                >
-                  <Minus size={14}/>
-                </button>
-                
-                <span className="font-black text-sm w-4 text-center">{currentQty}</span>
-                
-                <button 
-                  disabled={hasReachedLimit}
-                  onClick={() => updateQuantity(item.id, 1)} 
-                  className={`p-2 transition-colors ${
-                    hasReachedLimit 
-                      ? 'text-slate-600 cursor-not-allowed' 
-                      : 'hover:text-orange-400'
-                  }`}
-                >
-                  <Plus size={14}/>
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+        {/* --- CONTROLES DE PAGINACIÓN --- */}
+        <div className="flex items-center justify-between pt-6 pb-8 border-t border-slate-50 mt-4">
+          <button 
+            disabled={currentPage === 0}
+            onClick={() => { setCurrentPage(p => p - 1); window.scrollTo(0,0); }}
+            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest disabled:opacity-20"
+          >
+            <ChevronLeft size={16}/> Anterior
+          </button>
+          
+          <span className="text-[10px] font-black bg-slate-100 px-4 py-1.5 rounded-full">
+            {currentPage + 1}
+          </span>
+
+          <button 
+            disabled={(currentPage + 1) * itemsPerPage >= totalItems}
+            onClick={() => { setCurrentPage(p => p + 1); window.scrollTo(0,0); }}
+            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest disabled:opacity-20"
+          >
+            Siguiente <ChevronRight size={16}/>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 py-4 animate-in fade-in duration-300">

@@ -65,8 +65,25 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
 
 # --- 3. GESTIÓN DE PRODUCTOS (LISTAR) ---
 @router.get("/items")
-def get_my_items(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_tenant_id)):
-    return db.query(base.Item).filter(base.Item.tenant_id == tenant_id).all()
+async def get_items(
+    skip: int = 0, 
+    limit: int = 5, 
+    db: Session = Depends(get_db), 
+    current_user = Depends(get_current_user)
+):
+    # Contamos el total para que el frontend sepa cuántas páginas hay
+    total = db.query(base.Item).filter(base.Item.tenant_id == current_user.tenant_id).count()
+    
+    items = db.query(base.Item).filter(
+        base.Item.tenant_id == current_user.tenant_id
+    ).offset(skip).limit(limit).all()
+    
+    return {
+        "total": total,
+        "items": items,
+        "skip": skip,
+        "limit": limit
+    }
 
 # --- 4. CREAR PRODUCTO ---
 @router.post("/items")
