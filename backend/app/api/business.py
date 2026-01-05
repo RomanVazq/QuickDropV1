@@ -28,15 +28,35 @@ def get_current_tenant_id(token: str = Depends(oauth2_scheme)):
     except Exception:
         raise HTTPException(status_code=401, detail="No se pudo validar el token")
 
-
 @router.get("/public/{slug}")
-def get_public_business_data(slug: str, db: Session = Depends(get_db)):
+def get_public_business_data(
+    slug: str, 
+    skip: int = 0, 
+    limit: int = 5, 
+    db: Session = Depends(get_db)
+):
+    # 1. Buscar el negocio por su slug
     tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
     
     if not tenant:
         raise HTTPException(status_code=404, detail="El negocio no existe")
 
-    items = db.query(base.Item).filter(base.Item.tenant_id == tenant.id).all()
+    # 2. Obtener el total de productos (esencial para la paginación del frontend)
+    total_items = db.query(base.Item).filter(base.Item.tenant_id == tenant.id).count()
+
+    # 3. Obtener solo la "rebanada" (slice) de productos solicitada
+    items = db.query(base.Item)\
+              .filter(base.Item.tenant_id == tenant.id)\
+              .offset(skip)\
+              .limit(limit)\
+              .all()
+
+    # 4. (Opcional) Traer los posts recientes para la pestaña social
+    posts = db.query(base.Post)\
+              .filter(base.Post.tenant_id == tenant.id)\
+              .order_by(base.Post.created_at.desc())\
+              .limit(10)\
+              .all()
 
     return {
         "business": {
@@ -45,7 +65,9 @@ def get_public_business_data(slug: str, db: Session = Depends(get_db)):
             "slug": tenant.slug,
             "phone": tenant.phone
         },
-        "items": items
+        "items": items,
+        "total_items": total_items, # Campo clave para el frontend
+        "posts": posts
     }
 
 # --- 2. INFORMACIÓN PRIVADA (PARA EL DUEÑO) ---
