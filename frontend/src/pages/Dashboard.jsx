@@ -281,33 +281,125 @@ const Dashboard = () => {
       )}
 
       {/* MODAL PRODUCTO */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] p-8 max-w-md w-full animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black italic uppercase">{isEditing ? "Editar" : "Nuevo"} Item</h2>
-              <button onClick={resetForm} className="text-slate-300 hover:text-slate-900"><X size={28}/></button>
-            </div>
-            <form onSubmit={handleProductSubmit} className="space-y-4">
-              <input type="text" placeholder="Nombre" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-              <div className="grid grid-cols-2 gap-4">
-                <input type="number" placeholder="Precio" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                <input type="number" placeholder="Stock" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
-              </div>
-              <textarea placeholder="Descripción..." className="w-full p-4 bg-slate-50 rounded-2xl h-24 font-medium outline-none" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" name="Service" id="service-checkbox" checked={newProduct.is_service} onChange={e => setNewProduct({...newProduct, is_service: e.target.checked})} />
-                <label htmlFor="service-checkbox">¿Es un servicio?</label>
-              </div>
-              <label className="block bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200 text-center cursor-pointer">
-                <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
-                <span className="text-[10px] font-black uppercase text-slate-400 line-clamp-1">{file ? file.name : "Foto del Producto"}</span>
-              </label>
-              <button type="submit" className="w-full bg-orange-500 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg">Guardar</button>
-            </form>
+{isModalOpen && (
+  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full animate-in zoom-in-95 shadow-2xl max-h-[95vh] flex flex-col">
+      
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6 shrink-0">
+        <div>
+          <h2 className="text-2xl font-black italic uppercase text-slate-900">
+            {isEditing ? "Editar" : "Nuevo"} Item
+          </h2>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configuración de producto</p>
+        </div>
+        <button 
+          onClick={resetForm} 
+          className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-red-500 rounded-full transition-colors"
+        >
+          <X size={24}/>
+        </button>
+      </div>
+
+      {/* FORMULARIO CON SCROLL */}
+      <form onSubmit={handleProductSubmit} className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+        
+        <div className="space-y-1">
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Nombre del producto</label>
+          <input 
+            type="text" 
+            placeholder="Ej. Corte de Cabello" 
+            required 
+            className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl font-bold outline-none transition-all" 
+            value={newProduct.name} 
+            onChange={e => setNewProduct({...newProduct, name: e.target.value})} 
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Precio ($)</label>
+            <input 
+              type="number" 
+              placeholder="0.00" 
+              required 
+              className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl font-bold outline-none transition-all" 
+              value={newProduct.price} 
+              onChange={e => setNewProduct({...newProduct, price: e.target.value})} 
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Stock</label>
+            <input 
+              type="number" 
+              placeholder="99" 
+              required 
+              className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl font-bold outline-none transition-all" 
+              value={newProduct.stock} 
+              onChange={e => setNewProduct({...newProduct, stock: e.target.value})} 
+            />
           </div>
         </div>
-      )}
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Descripción</label>
+          <textarea 
+            placeholder="Detalles del producto o servicio..." 
+            className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl h-24 font-medium outline-none transition-all resize-none" 
+            value={newProduct.description} 
+            onChange={e => setNewProduct({...newProduct, description: e.target.value})} 
+          />
+        </div>
+
+        {/* TOGGLE SERVICE */}
+        <label className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${newProduct.is_service ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-slate-50'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${newProduct.is_service ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+              <Settings size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase">Es un servicio</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Habilita reserva de cita</p>
+            </div>
+          </div>
+          <input 
+            type="checkbox" 
+            className="w-6 h-6 rounded-lg accent-orange-500"
+            checked={newProduct.is_service} 
+            onChange={e => setNewProduct({...newProduct, is_service: e.target.checked})} 
+          />
+        </label>
+
+        {/* IMAGE UPLOAD */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Imagen</label>
+          <label className="block bg-white p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center cursor-pointer hover:border-slate-900 transition-colors">
+            <input 
+              type="file" 
+              onChange={e => setFile(e.target.files[0])} 
+              className="hidden" 
+              accept="image/*" 
+            />
+            <div className="flex flex-col items-center gap-1">
+              <Camera size={20} className="text-slate-300" />
+              <span className="text-[10px] font-black uppercase text-slate-500 truncate max-w-xs">
+                {file ? file.name : "Subir o cambiar foto"}
+              </span>
+            </div>
+          </label>
+        </div>
+
+        {/* SUBMIT */}
+        <button 
+          type="submit" 
+          className="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black uppercase tracking-widest shadow-xl hover:bg-orange-500 transition-all active:scale-95 shrink-0"
+        >
+          {isEditing ? "Actualizar" : "Guardar"} Item
+        </button>
+      </form>
+    </div>
+  </div>
+)}
     </div>
   );
 };
