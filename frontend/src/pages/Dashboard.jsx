@@ -22,7 +22,7 @@ const PostsView = ({ posts, onDelete }) => {
             )}
             <button 
               onClick={() => onDelete(post.id)}
-              className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-full text-red-500 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-full text-red-500 shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             >
               <Trash2 size={18} />
             </button>
@@ -78,7 +78,7 @@ const OrdersView = () => {
     }
   };
 
-  if (loading) return <div className="py-20 text-center font-black animate-pulse uppercase italic text-slate-400 text-sm tracking-widest">Consultando tickets...</div>;
+  if (loading) return <div className="py-20 text-center font-black animate-pulse uppercase italic text-slate-400 text-sm tracking-widest text-balance">Consultando tickets...</div>;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -137,18 +137,16 @@ const OrdersView = () => {
 
 // --- DASHBOARD PRINCIPAL ---
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('main'); // main, orders, posts
+  const [activeTab, setActiveTab] = useState('main'); 
   const [items, setItems] = useState([]);
   const [posts, setPosts] = useState([]);
   const [business, setBusiness] = useState({ name: '', slug: '', wallet: { balance: 0 } });
   const [loading, setLoading] = useState(true);
 
-  // Paginación Inventario
   const [currentPage, setCurrentPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const limit = 5;
 
-  // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: 0, description: '' });
@@ -189,7 +187,10 @@ const Dashboard = () => {
 
     try {
       if (isEditing) await api.put(`/business/items/${editingItem.id}`, formData);
-      else await api.post("/business/items", formData);
+      else {
+        if (!file) return toast.error("La imagen es obligatoria");
+        await api.post("/business/items", formData);
+      }
       toast.success("¡Éxito!");
       resetForm();
       fetchData();
@@ -211,6 +212,15 @@ const Dashboard = () => {
     } catch (err) { toast.error("Error al publicar"); }
   };
 
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("¿Eliminar producto?")) return;
+    try {
+      await api.delete(`/business/items/${id}`);
+      fetchData();
+      toast.success("Eliminado");
+    } catch (err) { toast.error("Error"); }
+  };
+
   const handleDeletePost = async (id) => {
     if (!window.confirm("¿Eliminar post?")) return;
     try {
@@ -224,12 +234,13 @@ const Dashboard = () => {
     setIsModalOpen(false); 
     setIsPostModalOpen(false); 
     setIsEditing(false);
+    setEditingItem(null);
     setNewProduct({ name: '', price: '', stock: 0, description: '' });
     setPostContent(""); 
     setFile(null);
   };
 
-  if (loading && items.length === 0) return <div className="p-20 text-center font-black text-slate-900 animate-pulse uppercase italic tracking-tighter text-4xl">Cargando...</div>;
+  if (loading && items.length === 0) return <div className="p-20 text-center font-black text-slate-900 animate-pulse uppercase italic tracking-tighter text-4xl">Cargando</div>;
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] p-4 md:p-10 font-sans text-slate-900">
@@ -238,19 +249,19 @@ const Dashboard = () => {
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">{business.name}</h1>
-            <div className="flex gap-2 mt-4">
-              <button onClick={() => setActiveTab('main')} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'main' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Inventario</button>
-              <button onClick={() => setActiveTab('orders')} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'orders' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Pedidos</button>
-              <button onClick={() => setActiveTab('posts')} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'posts' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Muro Social</button>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">{business.name}</h1>
+            <div className="flex overflow-x-auto gap-2 mt-4 no-scrollbar pb-2">
+              <button onClick={() => setActiveTab('main')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'main' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Inventario</button>
+              <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'orders' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Pedidos</button>
+              <button onClick={() => setActiveTab('posts')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'posts' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Muro</button>
             </div>
           </div>
           
           <div className="flex gap-3 w-full md:w-auto">
-            <button onClick={() => setIsPostModalOpen(true)} className="flex-1 md:flex-none bg-slate-100 text-slate-900 font-black text-xs uppercase px-6 py-3 rounded-2xl hover:bg-slate-200 flex items-center justify-center gap-2">
+            <button onClick={() => setIsPostModalOpen(true)} className="flex-1 md:flex-none bg-slate-100 text-slate-900 font-black text-xs uppercase px-6 py-3 rounded-2xl flex items-center justify-center gap-2 border border-slate-200">
               <Camera size={18} /> Post
             </button>
-            <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-orange-500 text-white font-black text-xs uppercase px-6 py-3 rounded-2xl shadow-lg hover:bg-orange-600 flex items-center justify-center gap-2">
+            <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-orange-500 text-white font-black text-xs uppercase px-6 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2">
               <Plus size={18} /> Item
             </button>
           </div>
@@ -259,32 +270,52 @@ const Dashboard = () => {
         {activeTab === 'orders' ? <OrdersView /> : 
          activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> : (
           <>
-            {/* STATS & INVENTARIO */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-              <div className="bg-white p-7 rounded-[2rem] border border-slate-100 shadow-sm">
-                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Créditos</p>
-                 <p className="text-4xl font-black text-emerald-500 italic">{business.wallet?.balance || 0}</p>
+            {/* STATS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-12">
+              <div className="bg-white p-6 md:p-7 rounded-[2rem] border border-slate-100 shadow-sm">
+                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Créditos</p>
+                 <p className="text-3xl md:text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
               </div>
-              <div className="bg-white p-7 rounded-[2rem] border border-slate-100 shadow-sm">
-                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Items</p>
-                 <p className="text-4xl font-black italic">{totalItems}</p>
+              <div className="bg-white p-6 md:p-7 rounded-[2rem] border border-slate-100 shadow-sm">
+                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Items</p>
+                 <p className="text-3xl md:text-4xl font-black italic">{totalItems}</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-100">
+            {/* TABLA RESPONSIVE */}
+            <div className="bg-white rounded-[2rem] md:border border-slate-100 md:shadow-xl overflow-hidden">
+              {/* VISTA MÓVIL (CARDS) */}
+              <div className="md:hidden space-y-4 p-2">
+                {items.map(item => (
+                  <div key={item.id} className="bg-white border border-slate-100 rounded-3xl p-4 flex items-center gap-4">
+                    <img src={item.image_url} className="w-16 h-16 rounded-2xl object-cover bg-slate-50" alt=""/>
+                    <div className="flex-1">
+                      <p className="font-bold text-slate-900 leading-tight">{item.name}</p>
+                      <p className="text-orange-500 font-black text-sm">${item.price}</p>
+                      <p className="text-[10px] font-black uppercase text-slate-400 mt-1">Stock: {item.stock}</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => { setEditingItem(item); setNewProduct(item); setIsEditing(true); setIsModalOpen(true); }} className="p-2 text-slate-400 bg-slate-50 rounded-xl"><Pencil size={18}/></button>
+                      <button onClick={() => handleDeleteProduct(item.id)} className="p-2 text-red-400 bg-red-50 rounded-xl"><Trash2 size={18}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* VISTA DESKTOP (TABLE) */}
+              <table className="w-full text-left hidden md:table">
+                <thead className="bg-slate-50/80 border-b border-slate-100">
                   <tr>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-500">Producto</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-500 text-center">Stock</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-500 text-right">Acciones</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-500 tracking-widest">Producto</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-500 text-center tracking-widest">Stock</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase text-slate-500 text-right tracking-widest">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {items.map(item => (
                     <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
                       <td className="px-6 py-4 flex items-center gap-4">
-                        <img src={item.image_url} className="w-12 h-12 rounded-xl object-cover" alt=""/>
+                        <img src={item.image_url} className="w-12 h-12 rounded-xl object-cover bg-slate-100" alt=""/>
                         <div>
                           <p className="font-bold text-slate-800 leading-none">{item.name}</p>
                           <p className="text-orange-500 font-black text-xs mt-1">${item.price}</p>
@@ -303,10 +334,12 @@ const Dashboard = () => {
                   ))}
                 </tbody>
               </table>
-              <div className="flex items-center justify-between p-6 bg-slate-50/50">
-                <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="text-[10px] font-black uppercase disabled:opacity-30"><ChevronLeft size={16}/></button>
-                <span className="text-[10px] font-black">Página {currentPage + 1}</span>
-                <button disabled={(currentPage + 1) * limit >= totalItems} onClick={() => setCurrentPage(p => p + 1)} className="text-[10px] font-black uppercase disabled:opacity-30"><ChevronRight size={16}/></button>
+
+              {/* PAGINACIÓN */}
+              <div className="flex items-center justify-between p-6 bg-slate-50/50 border-t border-slate-100">
+                <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-30"><ChevronLeft size={16}/> Anterior</button>
+                <span className="text-[10px] font-black bg-white px-4 py-2 rounded-xl border border-slate-200">Pág. {currentPage + 1}</span>
+                <button disabled={(currentPage + 1) * limit >= totalItems} onClick={() => setCurrentPage(p => p + 1)} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-30">Siguiente <ChevronRight size={16}/></button>
               </div>
             </div>
           </>
@@ -322,7 +355,7 @@ const Dashboard = () => {
               <button onClick={resetForm} className="text-slate-300 hover:text-slate-900"><X size={28}/></button>
             </div>
             <form onSubmit={handlePostSubmit} className="space-y-4">
-              <textarea placeholder="¿Qué quieres anunciar?" className="w-full p-4 bg-slate-50 rounded-2xl h-32 resize-none font-medium" value={postContent} onChange={e => setPostContent(e.target.value)} />
+              <textarea placeholder="¿Qué quieres anunciar?" className="w-full p-4 bg-slate-50 rounded-2xl h-32 resize-none font-medium outline-none" value={postContent} onChange={e => setPostContent(e.target.value)} />
               <label className="block bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200 text-center cursor-pointer">
                 <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
                 <ImageIcon size={24} className="mx-auto mb-1 text-slate-300" />
@@ -343,15 +376,15 @@ const Dashboard = () => {
               <button onClick={resetForm} className="text-slate-300 hover:text-slate-900"><X size={28}/></button>
             </div>
             <form onSubmit={handleProductSubmit} className="space-y-4">
-              <input type="text" placeholder="Nombre" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+              <input type="text" placeholder="Nombre" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
               <div className="grid grid-cols-2 gap-4">
-                <input type="number" placeholder="Precio" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
-                <input type="number" placeholder="Stock" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
+                <input type="number" placeholder="Precio" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                <input type="number" placeholder="Stock" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
               </div>
-              <textarea placeholder="Descripción..." className="w-full p-4 bg-slate-50 rounded-2xl h-24 font-medium" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+              <textarea placeholder="Descripción..." className="w-full p-4 bg-slate-50 rounded-2xl h-24 font-medium outline-none" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
               <label className="block bg-slate-50 p-6 rounded-3xl border-2 border-dashed border-slate-200 text-center cursor-pointer">
                 <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
-                <span className="text-[10px] font-black uppercase text-slate-400">{file ? file.name : "Foto del Producto"}</span>
+                <span className="text-[10px] font-black uppercase text-slate-400 line-clamp-1">{file ? file.name : "Foto del Producto"}</span>
               </label>
               <button type="submit" className="w-full bg-orange-500 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg">Guardar</button>
             </form>
