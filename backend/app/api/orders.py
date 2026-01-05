@@ -41,7 +41,7 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
     if not tenant: 
         raise HTTPException(status_code=404, detail="Negocio no encontrado")
 
-    # 2. Verificar saldo en Wallet (SaaS Monetization)
+    # 2. Verificar saldo en Wallet
     wallet = db.query(base.Wallet).filter(base.Wallet.tenant_id == tenant.id).first()
     if not wallet or wallet.balance <= 0:
         raise HTTPException(
@@ -49,7 +49,7 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
             detail="El negocio no puede recibir citas por falta de saldo."
         )
 
-    # 3. Calcular Total y Generar Resumen
+    # 3. Calcular Total, Validar Stock y Descontar
     total_price = 0
     resumen_items = []
     
@@ -59,12 +59,24 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
             base.Item.tenant_id == tenant.id
         ).first()
         
-        if product:
-            subtotal = product.price * item.quantity
-            total_price += subtotal
-            resumen_items.append(f"- {item.quantity}x {product.name} (${product.price:.2f})")
-        else:
-            raise HTTPException(status_code=400, detail="Uno de los servicios no es válido")
+        if not product:
+            raise HTTPException(status_code=400, detail=f"El producto con ID {item.product_id} no existe")
+
+        # --- Lógica de Stock ---
+        # Si NO es un servicio (es un producto físico), validamos stock
+        if not product.is_service:
+            if product.stock < item.quantity:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Stock insuficiente para {product.name}. Disponibles: {product.stock}"
+                )
+            # Descontamos la cantidad del inventario
+            product.stock -= item.quantity
+        # -----------------------
+
+        subtotal = product.price * item.quantity
+        total_price += subtotal
+        resumen_items.append(f"- {item.quantity}x {product.name} (${product.price:.2f})")
 
     # 4. Crear la Orden/Cita
     new_order = base.Order(
@@ -79,18 +91,18 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
         created_at=datetime.utcnow()
     )
     
-    # 5. Descontar 1 crédito al negocio por la gestión de la cita
+    # 5. Descontar 1 crédito al negocio
     wallet.balance -= 1
     
     try:
         db.add(new_order)
-        db.commit()
+        db.commit() # Al hacer commit se guardan los cambios de stock y la orden
         db.refresh(new_order)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Error interno al procesar la reserva")
 
-    # 6. Respuesta para confirmación (útil para enviar a WhatsApp)
+    # 6. Respuesta para WhatsApp
     fecha_formateada = new_order.appointment_datetime.strftime("%d/%m/%Y %H:%M") if new_order.appointment_datetime else "A convenir"
     
     return {
