@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Package, Clock, CheckCircle, XCircle, MapPin, User, DollarSign, Calendar } from 'lucide-react';
+import { Package, CheckCircle, XCircle, MapPin, User, DollarSign } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const OrdersDashboard = () => {
@@ -11,21 +11,23 @@ const OrdersDashboard = () => {
     try {
       const res = await api.get('/orders/my-orders');
       
-      // --- Lógica de Ordenamiento ---
-      // Definimos el peso de cada estado: pending es el más importante (0)
+      // La API puede devolver los items en una propiedad 'items' o directamente en el body
+      const rawData = Array.isArray(res.data) ? res.data : (res.data.items || []);
+
+      // --- Lógica de Prioridad ---
       const statusPriority = {
         'pending': 0,
         'completed': 1,
         'cancelled': 2
       };
 
-      const sortedOrders = res.data.sort((a, b) => {
-        // Primero ordenamos por prioridad de estado
+      const sortedOrders = [...rawData].sort((a, b) => {
+        // 1. Prioridad por estado
         if (statusPriority[a.status] !== statusPriority[b.status]) {
           return statusPriority[a.status] - statusPriority[b.status];
         }
-        // Si tienen el mismo estado, mostramos el más reciente primero (por ID o fecha)
-        return b.id.localeCompare(a.id);
+        // 2. Por fecha/ID (el más nuevo arriba dentro de su mismo grupo)
+        return new Date(b.created_at || b.id) - new Date(a.created_at || a.id);
       });
 
       setOrders(sortedOrders);
@@ -45,8 +47,8 @@ const OrdersDashboard = () => {
   const updateStatus = async (id, newStatus) => {
     try {
       await api.patch(`/orders/${id}/status?status=${newStatus}`);
-      toast.success("Estado actualizado");
-      fetchOrders(); // Recarga y re-ordena automáticamente
+      toast.success(`Pedido marcado como ${newStatus}`);
+      fetchOrders(); 
     } catch (err) {
       toast.error("No se pudo actualizar");
     }
