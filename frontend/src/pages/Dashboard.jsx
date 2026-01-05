@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import OrdersDashboard from '../components/OrdersDashboard';
 import { 
   Package, ShoppingBag, Plus, Trash2, X, Pencil, Camera, 
   Grid3X3, Heart, Image as ImageIcon, MapPin, User, 
@@ -45,95 +46,7 @@ const PostsView = ({ posts, onDelete }) => {
   );
 };
 
-// --- COMPONENTE INTERNO: GESTIÓN DE ÓRDENES ---
-const OrdersView = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchOrders = async () => {
-    try {
-      const res = await api.get('/orders/my-orders');
-      const ordersData = Array.isArray(res.data) ? res.data : (res.data.items || []);
-      setOrders(ordersData);
-    } catch (err) {
-      toast.error("Error al cargar pedidos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 20000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const updateStatus = async (id, newStatus) => {
-    try {
-      await api.patch(`/orders/${id}/status?status=${newStatus}`);
-      toast.success("Estado actualizado");
-      fetchOrders();
-    } catch (err) {
-      toast.error("No se pudo actualizar");
-    }
-  };
-
-  if (loading) return <div className="py-20 text-center font-black animate-pulse uppercase italic text-slate-400 text-sm tracking-widest text-balance">Consultando tickets...</div>;
-
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {orders.map(order => (
-          <div key={order.id} className="bg-white border-2 border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-xl transition-all border-t-8 border-t-slate-900">
-            <div className="flex justify-between items-start mb-4">
-              <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${
-                order.status === 'completed' ? 'bg-green-50 text-green-600 border-green-100' : 
-                order.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 
-                'bg-orange-50 text-orange-600 border-orange-100'
-              }`}>
-                {order.status}
-              </span>
-              <span className="text-slate-400 text-[10px] font-bold">#{order.id.substring(0, 8)}</span>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><User size={18}/></div>
-                <div>
-                  <p className="text-[10px] uppercase font-black text-slate-400 leading-none mb-1">Cliente</p>
-                  <p className="font-bold text-slate-900 leading-tight">{order.customer_name}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><MapPin size={18}/></div>
-                <div>
-                  <p className="text-[10px] uppercase font-black text-slate-400 leading-none mb-1">Dirección</p>
-                  <p className="text-sm font-medium text-slate-600 line-clamp-1">{order.address}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="bg-orange-50 p-2 rounded-xl text-orange-600"><DollarSign size={18}/></div>
-                <p className="text-xl font-black text-slate-900">${order.total_amount?.toFixed(2)}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-4 border-t border-dashed border-slate-100">
-              {order.status === 'pending' ? (
-                <button onClick={() => updateStatus(order.id, 'completed')} className="w-full bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600">
-                  <CheckCircle size={16}/> Completar
-                </button>
-              ) : (
-                <button onClick={() => updateStatus(order.id, 'pending')} className="w-full bg-slate-50 text-slate-400 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-slate-100">
-                  Reabrir Ticket
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 // --- DASHBOARD PRINCIPAL ---
 const Dashboard = () => {
@@ -267,7 +180,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {activeTab === 'orders' ? <OrdersView /> : 
+        {activeTab === 'orders' ? <OrdersDashboard /> : 
          activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> : (
           <>
             {/* STATS */}
