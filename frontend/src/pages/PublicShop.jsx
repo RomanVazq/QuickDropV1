@@ -164,7 +164,7 @@ const PublicShop = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter">{data.business?.name}</h1>
           <p className="text-slate-400 text-[10px] font-bold uppercase flex items-center gap-1">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Tienda verificada
           </p>
         </div>
       </div>
@@ -173,10 +173,10 @@ const PublicShop = () => {
       {step === 1 && (
         <div className="flex bg-white sticky top-0 z-40 border-b border-slate-100">
           <button onClick={() => setActiveTab('menu')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest ${activeTab === 'menu' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-300'}`}>
-            Menú
+            Cátalogo
           </button>
           <button onClick={() => setActiveTab('gallery')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest ${activeTab === 'gallery' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-300'}`}>
-            Galería
+            Publicaciones
           </button>
         </div>
       )}
