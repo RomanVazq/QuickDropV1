@@ -3,7 +3,7 @@ import api from '../services/api';
 import { 
   LayoutDashboard, Package, ShoppingBag, Plus, Trash2, 
   X, Pencil, Camera, Grid3X3, Heart, ExternalLink, 
-  Image as ImageIcon, MapPin, User, DollarSign, CheckCircle, XCircle, FileText, Loader2, Minus
+  Image as ImageIcon, MapPin, User, DollarSign, CheckCircle, XCircle, FileText, Loader2, Minus, Calendar
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
