@@ -60,6 +60,7 @@ const PublicCart = ({
       }
     } finally {
       setIsSubmitting(false);
+      fetch(`/api/public/shop/${slug}`); // Refresca la tienda pública para actualizar stock
     }
   };
 
