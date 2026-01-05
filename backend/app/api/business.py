@@ -69,13 +69,13 @@ async def get_items(
     skip: int = 0, 
     limit: int = 5, 
     db: Session = Depends(get_db), 
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_tenant_id)
 ):
     # Contamos el total para que el frontend sepa cuántas páginas hay
-    total = db.query(base.Item).filter(base.Item.tenant_id == current_user.tenant_id).count()
+    total = db.query(base.Item).filter(base.Item.tenant_id == current_user).count()
     
     items = db.query(base.Item).filter(
-        base.Item.tenant_id == current_user.tenant_id
+        base.Item.tenant_id == current_user
     ).offset(skip).limit(limit).all()
     
     return {
