@@ -114,15 +114,36 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
     }
 
 @router.get("/my-orders")
-async def get_my_orders(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def get_my_orders(
+    status: Optional[str] = Query(None), # Parámetro opcional: ?status=pending
+    db: Session = Depends(get_db), 
+    current_user = Depends(get_current_tenant_id)
+):
     """
-    Lista todas las citas del negocio logueado, ordenadas por fecha de cita
+    Lista las citas del negocio logueado con filtrado opcional por status.
     """
-    orders = db.query(base.Order).filter(
-        base.Order.tenant_id == current_user.tenant_id
-    ).order_by(base.Order.appointment_datetime.asc()).all()
+    query = db.query(base.Order).filter(base.Order.tenant_id == current_user.tenant_id)
     
-    return orders
+    # 1. Aplicar filtro de status si el usuario lo envía (y no es "all")
+    if status and status != "all":
+        query = query.filter(base.Order.status == status)
+
+    orders = query.all()
+
+    # 2. Lógica de ordenamiento manual (Prioridad: pending=0, completed=1, cancelled=2)
+    # Hacemos esto en Python porque el ordenamiento por "pesos" personalizados 
+    # es más sencillo de mantener aquí que con SQL CASE
+    status_priority = {'pending': 0, 'completed': 1, 'cancelled': 2}
+
+    sorted_orders = sorted(
+        orders, 
+        key=lambda x: (
+            status_priority.get(x.status, 99), # Prioridad por estado
+            -(x.created_at.timestamp() if x.created_at else 0) # El más reciente primero
+        )
+    )
+    
+    return sorted_orders
 
 @router.patch("/{order_id}/status")
 async def update_order_status(
