@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { ShoppingBag, UtensilsCrossed, Camera, Calendar, Plus } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Componentes internos
@@ -14,6 +14,7 @@ const PublicShop = () => {
   
   // --- ESTADOS DE DATOS Y PAGINACIÓN ---
   const [data, setData] = useState({ business: null, items: [], posts: [] });
+  const [allItems, setAllItems] = useState({}); // Diccionario persistente de productos
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
@@ -36,25 +37,57 @@ const PublicShop = () => {
 
   const [likedPosts, setLikedPosts] = useState(new Set());
 
-  // 1. CARGA DE DATOS (Con dependencia de currentPage)
+  // ==========================================
+  // 1. PERSISTENCIA (LocalStorage)
+  // ==========================================
+  
+  // Cargar carrito y cache de productos al iniciar
+  useEffect(() => {
+    const savedCart = localStorage.getItem(`cart_${slug}`);
+    const savedItems = localStorage.getItem(`items_cache_${slug}`);
+    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedItems) setAllItems(JSON.parse(savedItems));
+  }, [slug]);
+
+  // Guardar cada vez que cambien
+  useEffect(() => {
+    localStorage.setItem(`cart_${slug}`, JSON.stringify(cart));
+    if (Object.keys(allItems).length > 0) {
+      localStorage.setItem(`items_cache_${slug}`, JSON.stringify(allItems));
+    }
+  }, [cart, allItems, slug]);
+
+  // ==========================================
+  // 2. CARGA DE DATOS DESDE API
+  // ==========================================
   useEffect(() => {
     const fetchShop = async () => {
       try {
         setLoading(true);
         const skip = currentPage * itemsPerPage;
         
-        // Llamada al backend con skip y limit
         const [bizRes, socialRes] = await Promise.all([
           api.get(`/business/public/${slug}?skip=${skip}&limit=${itemsPerPage}`),
           api.get(`/social/feed/${slug}`).catch(() => ({ data: [] }))
         ]);
         
+        const newItems = bizRes.data.items || [];
+
+        // Actualizar el diccionario acumulativo de productos
+        setAllItems(prev => {
+          const updated = { ...prev };
+          newItems.forEach(item => {
+            updated[item.id] = item;
+          });
+          return updated;
+        });
+
         setData({ 
           ...bizRes.data, 
+          items: newItems,
           posts: socialRes.data 
         });
 
-        // Guardamos el total de items para controlar el botón "Siguiente"
         setTotalItems(bizRes.data.total_items || 0);
         
         const initialLikes = new Set(
@@ -69,11 +102,17 @@ const PublicShop = () => {
     };
 
     fetchShop();
-  }, [slug, currentPage]); // Se dispara cada vez que cambias de página
+  }, [slug, currentPage]);
 
-  // 2. LÓGICA DE CARRITO
+  // Calculamos el array del carrito usando el diccionario 'allItems'
+  // Esto evita que los productos desaparezcan al cambiar de página
+  const cartArray = Object.keys(cart).map(id => ({
+    ...(allItems[id] || {}), 
+    quantity: cart[id]
+  })).filter(item => item.id); // Seguridad: solo items que existan en el diccionario
+
   const updateQuantity = (id, delta) => {
-    const item = data.items.find(i => i.id === id);
+    const item = allItems[id]; // Buscamos en el diccionario
     
     if (item?.is_service && delta > 0) {
       const hasExistingService = cartArray.some(cartItem => cartItem.is_service);
@@ -107,7 +146,9 @@ const PublicShop = () => {
     toast.success("Horario agendado");
   };
 
-  // 3. LÓGICA DE LIKES
+  // ==========================================
+  // 4. LÓGICA DE LIKES Y CÁLCULOS
+  // ==========================================
   const handleLike = async (postId) => {
     const isLiked = likedPosts.has(postId);
     setLikedPosts(prev => {
@@ -121,12 +162,6 @@ const PublicShop = () => {
       toast.error("Error en el servidor");
     }
   };
-
-  // 4. CÁLCULOS
-  const cartArray = Object.keys(cart).map(id => ({
-    ...data.items.find(i => i.id === id),
-    quantity: cart[id]
-  }));
 
   const cartTotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const hasService = cartArray.some(item => item.is_service);
@@ -191,7 +226,6 @@ const PublicShop = () => {
             updateQuantity={updateQuantity}
             handleLike={handleLike}
             likedPosts={likedPosts}
-            // Props de paginación pasadas al hijo
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             totalItems={totalItems}
@@ -206,6 +240,7 @@ const PublicShop = () => {
             cartTotal={cartTotal}
             hasService={hasService}
             business={data.business}
+            slug={slug} // Para que PublicCart sepa qué borrar al terminar
           />
         )}
       </div>
