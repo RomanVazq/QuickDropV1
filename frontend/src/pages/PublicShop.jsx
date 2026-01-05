@@ -241,6 +241,7 @@ const PublicShop = () => {
             hasService={hasService}
             business={data.business}
             slug={slug} // Para que PublicCart sepa qué borrar al terminar
+            setCart={setCart}
           />
         )}
       </div>
