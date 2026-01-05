@@ -4,7 +4,7 @@ import OrdersDashboard from './OrdersDashboard';
 import { 
   Package, ShoppingBag, Plus, Trash2, X, Pencil, Camera, 
   Grid3X3, Heart, Image as ImageIcon, MapPin, User, 
-  DollarSign, CheckCircle, XCircle, Calendar, ChevronLeft, ChevronRight,
+  DollarSign, CheckCircle, XCircle, Calendar, ChevronLeft, ChevronRight, Settings,
   MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
