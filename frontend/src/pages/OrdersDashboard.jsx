@@ -11,23 +11,25 @@ const OrdersDashboard = () => {
     try {
       const res = await api.get('/orders/my-orders');
       
-      // La API puede devolver los items en una propiedad 'items' o directamente en el body
-      const rawData = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      // Datos extraídos de tu JSON
+      const data = Array.isArray(res.data) ? res.data : (res.data.items || []);
 
-      // --- Lógica de Prioridad ---
+      // --- Lógica de Ordenamiento Estricta ---
       const statusPriority = {
         'pending': 0,
         'completed': 1,
         'cancelled': 2
       };
 
-      const sortedOrders = [...rawData].sort((a, b) => {
-        // 1. Prioridad por estado
+      const sortedOrders = [...data].sort((a, b) => {
+        // 1. Prioridad por estado (0 > 1 > 2)
         if (statusPriority[a.status] !== statusPriority[b.status]) {
           return statusPriority[a.status] - statusPriority[b.status];
         }
-        // 2. Por fecha/ID (el más nuevo arriba dentro de su mismo grupo)
-        return new Date(b.created_at || b.id) - new Date(a.created_at || a.id);
+        
+        // 2. Por fecha de creación (los más recientes arriba en su sección)
+        // Convertimos a Date para asegurar que el orden sea cronológico correcto
+        return new Date(b.created_at) - new Date(a.created_at);
       });
 
       setOrders(sortedOrders);
@@ -47,10 +49,10 @@ const OrdersDashboard = () => {
   const updateStatus = async (id, newStatus) => {
     try {
       await api.patch(`/orders/${id}/status?status=${newStatus}`);
-      toast.success(`Pedido marcado como ${newStatus}`);
-      fetchOrders(); 
+      toast.success("Estado actualizado");
+      fetchOrders();
     } catch (err) {
-      toast.error("No se pudo actualizar");
+      toast.error("Error al actualizar");
     }
   };
 
@@ -62,19 +64,19 @@ const OrdersDashboard = () => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center font-black animate-pulse uppercase tracking-tighter text-slate-400">Consultando cocina...</div>;
+  if (loading) return <div className="p-10 text-center font-black animate-pulse uppercase text-slate-400">Organizando pedidos...</div>;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto animate-in fade-in duration-500">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">
           Gestión de Pedidos
         </h2>
         <div className="flex gap-2">
-          <span className="bg-orange-500 text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+          <span className="bg-orange-500 text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase">
             {orders.filter(o => o.status === 'pending').length} Pendientes
           </span>
-          <span className="bg-slate-900 text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+          <span className="bg-slate-900 text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase">
             {orders.length} Totales
           </span>
         </div>
@@ -84,15 +86,17 @@ const OrdersDashboard = () => {
         {orders.map(order => (
           <div 
             key={order.id} 
-            className={`bg-white border-2 rounded-[32px] p-6 shadow-sm hover:shadow-xl transition-all border-t-8 ${
-              order.status === 'pending' ? 'border-orange-500 border-t-orange-500 ring-4 ring-orange-500/5' : 'border-slate-100 border-t-slate-900 opacity-80'
+            className={`bg-white border-2 rounded-[32px] p-6 shadow-sm border-t-8 transition-all ${
+              order.status === 'pending' 
+                ? 'border-orange-500 ring-4 ring-orange-500/5' 
+                : 'border-slate-100 border-t-slate-900 opacity-80'
             }`}
           >
             <div className="flex justify-between items-start mb-4">
               <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${getStatusStyle(order.status)}`}>
                 {order.status}
               </span>
-              <span className="text-slate-400 text-[10px] font-bold font-mono">
+              <span className="text-slate-400 text-[10px] font-mono">
                 #{order.id.substring(0, 8).toUpperCase()}
               </span>
             </div>
@@ -101,24 +105,24 @@ const OrdersDashboard = () => {
               <div className="flex items-center gap-3">
                 <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><User size={18}/></div>
                 <div>
-                  <p className="text-[10px] uppercase font-black text-slate-400 leading-none">Cliente</p>
-                  <p className="font-bold text-slate-900">{order.customer_name}</p>
+                  <p className="text-[10px] uppercase font-black text-slate-400">Cliente</p>
+                  <p className="font-bold">{order.customer_name}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><MapPin size={18}/></div>
-                <div>
-                  <p className="text-[10px] uppercase font-black text-slate-400 leading-none">Ubicación</p>
-                  <p className="font-medium text-slate-600 text-sm line-clamp-1">{order.address || "Retiro en local"}</p>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-[10px] uppercase font-black text-slate-400">Dirección</p>
+                  <p className="text-sm text-slate-600 truncate">{order.address}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="bg-orange-50 p-2 rounded-xl text-orange-600"><DollarSign size={18}/></div>
                 <div>
-                  <p className="text-[10px] uppercase font-black text-slate-400 leading-none">Monto Total</p>
-                  <p className="text-xl font-black text-slate-900">${order.total_amount?.toFixed(2)}</p>
+                  <p className="text-[10px] uppercase font-black text-slate-400">Total</p>
+                  <p className="text-xl font-black text-slate-900">${order.total_amount}</p>
                 </div>
               </div>
             </div>
@@ -128,13 +132,13 @@ const OrdersDashboard = () => {
                 <>
                   <button 
                     onClick={() => updateStatus(order.id, 'completed')}
-                    className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600 active:scale-95 transition-all shadow-lg shadow-green-100"
+                    className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600 shadow-lg shadow-green-100"
                   >
                     <CheckCircle size={16}/> Completar
                   </button>
                   <button 
                     onClick={() => updateStatus(order.id, 'cancelled')}
-                    className="bg-slate-100 text-slate-400 p-3 rounded-2xl hover:bg-red-50 transition-colors hover:text-red-500 active:scale-95"
+                    className="bg-slate-100 text-slate-400 p-3 rounded-2xl hover:text-red-500"
                   >
                     <XCircle size={20}/>
                   </button>
@@ -142,22 +146,15 @@ const OrdersDashboard = () => {
               ) : (
                 <button 
                   onClick={() => updateStatus(order.id, 'pending')}
-                  className="w-full bg-slate-50 text-slate-400 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
+                  className="w-full bg-slate-50 text-slate-400 py-3 rounded-2xl font-bold text-xs uppercase border border-slate-100 hover:bg-slate-100"
                 >
-                  Reabrir Ticket
+                  Reabrir Pedido
                 </button>
               )}
             </div>
           </div>
         ))}
       </div>
-
-      {orders.length === 0 && (
-        <div className="text-center py-20 border-4 border-dashed border-slate-50 rounded-[48px]">
-          <Package size={64} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest italic">Bandeja de entrada vacía</p>
-        </div>
-      )}
     </div>
   );
 };
