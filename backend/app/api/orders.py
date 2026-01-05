@@ -117,7 +117,7 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
 async def get_my_orders(
     status: Optional[str] = Query(None), # Parámetro opcional: ?status=pending
     db: Session = Depends(get_db), 
-    current_user = Depends(get_current_tenant_id)
+    current_user = Depends(get_current_user)
 ):
     """
     Lista las citas del negocio logueado con filtrado opcional por status.
