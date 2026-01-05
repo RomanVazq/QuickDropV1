@@ -151,7 +151,7 @@ const Dashboard = () => {
         api.get('/business/items'),
         api.get('/business/me')
       ]);
-      setItems(itemsRes.data);
+      setItems(itemsRes.data.items);
       setBusiness(meRes.data);
       try {
         const postsRes = await api.get('/social/my-posts');
