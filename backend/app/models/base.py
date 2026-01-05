@@ -37,7 +37,8 @@ class Item(Base):
     price = Column(Float, nullable=False)
     image_url = Column(String, nullable=True)
     is_service = Column(Boolean, default=False) 
-    
+    stock = Column(Float, default=0.0)
+    description = Column(Text, nullable=True)
     tenant = relationship("Tenant", back_populates="items")
 
 class Order(Base):

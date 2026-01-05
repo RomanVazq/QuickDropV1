@@ -13,8 +13,8 @@ from datetime import datetime, timedelta
 router = APIRouter()
 
 # --- CONFIGURACIÓN SUPABASE ---
-SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vetqpetunrnscqizstix.supabase.co/"
-SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "sb_publishable_EO8bJaRdWDQoBlr1fpZ6Xg_l0CKiq67"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- DEPENDENCIA PARA RUTAS PRIVADAS ---
@@ -28,19 +28,14 @@ def get_current_tenant_id(token: str = Depends(oauth2_scheme)):
     except Exception:
         raise HTTPException(status_code=401, detail="No se pudo validar el token")
 
-# --- 1. ENDPOINT PÚBLICO (EL QUE SOLUCIONA EL 404) ---
+
 @router.get("/public/{slug}")
 def get_public_business_data(slug: str, db: Session = Depends(get_db)):
-    """
-    Busca un negocio y sus productos por el slug (URL). 
-    No requiere autenticación.
-    """
     tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
     
     if not tenant:
         raise HTTPException(status_code=404, detail="El negocio no existe")
 
-    # Obtenemos los productos o servicios de este negocio
     items = db.query(base.Item).filter(base.Item.tenant_id == tenant.id).all()
 
     return {
@@ -79,7 +74,10 @@ async def create_product(
     name: str = Form(...),
     price: float = Form(...),
     is_service: bool = Form(False),
+    stock: float = Form(0.0),
+    description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
@@ -104,7 +102,9 @@ async def create_product(
         price=price, 
         is_service=is_service, 
         tenant_id=tenant_id,
-        image_url=image_url
+        image_url=image_url,
+        stock=stock,
+        description=description
     )
     db.add(new_item)
     db.commit()
@@ -118,6 +118,8 @@ async def update_product(
     name: str = Form(...),
     price: float = Form(...),
     is_service: bool = Form(False),
+    stock: float = Form(0.0),
+    description: str = Form(""),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
@@ -135,6 +137,8 @@ async def update_product(
     item.name = name
     item.price = price
     item.is_service = is_service
+    item.stock = stock
+    item.description = description
     db.commit()
     db.refresh(item)
     return item

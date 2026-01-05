@@ -9,32 +9,82 @@ const PublicCatalog = ({
   handleLike, 
   likedPosts 
 }) => {
-  if (activeTab === 'menu') {
-    return (
-      <div className="p-4 space-y-3 animate-in fade-in duration-300">
-        {data.items.map(item => (
-          <div key={item.id} className="flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
-            <img src={item.image_url} className="w-20 h-20 rounded-xl object-cover" alt="" />
+if (activeTab === 'menu') {
+  return (
+    <div className="p-4 space-y-3 animate-in fade-in duration-300">
+      {data.items.map(item => {
+        const currentQty = cart[item.id] || 0;
+        const hasReachedLimit = currentQty >= item.stock;
+        const isOutOfStock = item.stock <= 0;
+
+        return (
+          <div key={item.id} className={`flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm transition-opacity ${isOutOfStock ? 'opacity-60' : ''}`}>
+            
+            {/* Imagen con indicador de agotado */}
+            <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+              <img 
+                src={item.image_url} 
+                className={`w-full h-full object-cover transition-transform ${isOutOfStock ? 'grayscale' : 'hover:scale-105'}`} 
+                alt={item.name} 
+              />
+              {isOutOfStock && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <span className="text-[10px] font-black text-white uppercase tracking-tighter">Sin Stock</span>
+                </div>
+              )}
+            </div>
+            
             <div className="flex-1">
               <h3 className="font-bold text-slate-800 text-sm uppercase leading-tight">{item.name}</h3>
               <p className="text-orange-600 font-black text-lg">${item.price}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                {isOutOfStock ? 'No disponible' : `Stock: ${item.stock}`}
+              </p>
             </div>
+
+            {/* Lógica de Botones con validación */}
             {!cart[item.id] ? (
-              <button onClick={() => updateQuantity(item.id, 1)} className="bg-slate-50 p-4 rounded-xl text-slate-900 transition-all active:bg-slate-200">
+              <button 
+                disabled={isOutOfStock}
+                onClick={() => updateQuantity(item.id, 1)} 
+                className={`p-4 rounded-xl transition-all ${
+                  isOutOfStock 
+                    ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
+                    : 'bg-slate-50 text-slate-900 active:bg-slate-200'
+                }`}
+              >
                 <Plus size={18} />
               </button>
             ) : (
               <div className="flex items-center gap-2 bg-slate-900 text-white p-1 rounded-xl">
-                <button onClick={() => updateQuantity(item.id, -1)} className="p-2 hover:text-orange-400"><Minus size={14}/></button>
-                <span className="font-black text-sm w-4 text-center">{cart[item.id]}</span>
-                <button onClick={() => updateQuantity(item.id, 1)} className="p-2 hover:text-orange-400"><Plus size={14}/></button>
+                <button 
+                  onClick={() => updateQuantity(item.id, -1)} 
+                  className="p-2 hover:text-orange-400 transition-colors"
+                >
+                  <Minus size={14}/>
+                </button>
+                
+                <span className="font-black text-sm w-4 text-center">{currentQty}</span>
+                
+                <button 
+                  disabled={hasReachedLimit}
+                  onClick={() => updateQuantity(item.id, 1)} 
+                  className={`p-2 transition-colors ${
+                    hasReachedLimit 
+                      ? 'text-slate-600 cursor-not-allowed' 
+                      : 'hover:text-orange-400'
+                  }`}
+                >
+                  <Plus size={14}/>
+                </button>
               </div>
             )}
           </div>
-        ))}
-      </div>
-    );
-  }
+        );
+      })}
+    </div>
+  );
+}
 
   return (
     <div className="space-y-4 py-4 animate-in fade-in duration-300">
@@ -46,28 +96,46 @@ const PublicCatalog = ({
             </div>
             <span className="font-bold text-[10px] uppercase italic tracking-tight">{data.business?.name}</span>
           </div>
-          <img 
-            src={post.image_url} 
-            className="w-full aspect-square object-cover cursor-pointer" 
-            alt="" 
-            onDoubleClick={() => handleLike(post.id)} 
-          />
-          <div className="p-4">
-            <p className="text-md mb-2 font-black">
-              <span className='font-red  mr-2'>{post.content}</span>
-            </p>
-            <div className="flex items-center gap-4 mb-2">
 
-              <button onClick={() => handleLike(post.id)} className="transition-transform active:scale-125">
-                <Heart 
-                  size={28} 
-                  className={`transition-all ${likedPosts.has(post.id) ? 'fill-red-500 text-red-500' : 'text-slate-900'}`} 
-                />
-              </button>
-            </div>
-            <p className="font-black text-sm mb-1">{post.likes_count || 0} Me gusta</p>
-
+          {/* Contenedor de imagen tipo Instagram para la Galería */}
+          <div className="w-full aspect-square overflow-hidden bg-slate-50">
+            <img 
+              src={post.image_url} 
+              className="w-full h-full object-cover cursor-pointer select-none" 
+              alt="" 
+              onDoubleClick={() => handleLike(post.id)} 
+            />
           </div>
+
+<div className="p-4">
+  <div className="flex justify-between items-start gap-4">
+    {/* 1. Lado Izquierdo: El contenido del post */}
+    <div className="flex-1">
+      <p className="text-sm leading-relaxed text-slate-700 font-medium">
+        {post.content}
+      </p>
+    </div>
+
+    {/* 2. Lado Derecho: Interacciones (Icono + Conteo) */}
+    <div className="flex flex-col items-center gap-1">
+      <button 
+        onClick={() => handleLike(post.id)} 
+        className="transition-transform active:scale-125"
+      >
+        <Heart 
+          size={24} 
+          className={`transition-all ${
+            likedPosts.has(post.id) ? 'fill-red-500 text-red-500' : 'text-slate-900'
+          }`} 
+        />
+      </button>
+      
+      <span className="font-black text-[10px] whitespace-nowrap uppercase tracking-tighter">
+        {post.likes_count || 0} {post.likes_count === 1 ? 'Like' : 'Likes'}
+      </span>
+    </div>
+  </div>
+</div>
         </div>
       ))}
     </div>

@@ -10,9 +10,9 @@ import logging
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
 # Configuración básica
-SECRET_KEY = os.getenv("SECRET_KEY", "09d6e05391264c158e0632422791e813f416c148208740a3279c6575026e680a") 
+SECRET_KEY = os.getenv("SECRET_KEY") 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # 2. Configuración robusta de CryptContext
 # Forzamos 'ident="2b"' para saltar la detección automática de bugs de passlib
@@ -41,5 +41,5 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    # Asegúrate de que SECRET_KEY no sea None
+   
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

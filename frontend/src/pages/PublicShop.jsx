@@ -147,7 +147,7 @@ const updateQuantity = (id, delta) => {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-white">
         <div className="w-12 h-12 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-black text-slate-300 uppercase tracking-tighter">Cargando Experiencia...</p>
+        <p className="font-black text-slate-300 uppercase tracking-tighter">Cargando...</p>
       </div>
     );
   }
@@ -200,7 +200,7 @@ const updateQuantity = (id, delta) => {
             onClick={() => setActiveTab('gallery')} 
             className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${activeTab === 'gallery' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-300'}`}
           >
-            <Camera size={16}/> Galería
+            <Camera size={16}/> Publicaciones
           </button>
         </div>
       )}

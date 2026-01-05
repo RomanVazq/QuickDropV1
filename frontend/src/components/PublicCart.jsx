@@ -65,7 +65,6 @@ const PublicCart = ({
 
   return (
     <div className="p-6 animate-in slide-in-from-right-10 duration-500">
-      {/* ... (Cabecera y Lista de Productos se mantienen igual) ... */}
       <div className="flex justify-between items-center mb-8">
         <button onClick={() => setStep(1)} className="text-xs font-black uppercase text-slate-400 underline underline-offset-4" disabled={isSubmitting}>
           ← Volver
@@ -73,23 +72,51 @@ const PublicCart = ({
         <h2 className="text-2xl font-black italic tracking-tighter uppercase">Finalizar</h2>
       </div>
 
-      <div className="space-y-3 mb-8">
-        {cartArray.map(item => (
-          <div key={item.id} className="flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
-            <img src={item.image_url} className="w-16 h-16 rounded-xl object-cover" alt="" />
-            <div className="flex-1">
-              <h4 className="font-bold text-sm text-slate-800 uppercase leading-none">{item.name}</h4>
-              <p className="text-orange-600 font-black">${item.price * item.quantity}</p>
-            </div>
-            {/* Controles de cantidad deshabilitados durante el envío */}
-            <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200">
-              <button onClick={() => updateQuantity(item.id, -1)} disabled={isSubmitting} className="p-2 text-slate-400"><Minus size={12}/></button>
-              <span className="font-black text-xs">{item.quantity}</span>
-              <button onClick={() => updateQuantity(item.id, 1)} disabled={isSubmitting} className="p-2 text-slate-900"><Plus size={12}/></button>
-            </div>
-          </div>
-        ))}
+<div className="space-y-3 mb-8">
+  {cartArray.map(item => {
+    // Buscamos el stock real del item en la data original (o si item ya trae el stock)
+    const stockDisponible = item.stock; 
+    const yaAlcanzoLimite = item.quantity >= stockDisponible;
+
+    return (
+      <div key={item.id} className="flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+        <img src={item.image_url} className="w-16 h-16 rounded-xl object-cover" alt="" />
+        <div className="flex-1">
+          <h4 className="font-bold text-sm text-slate-800 uppercase leading-none">{item.name}</h4>
+          <p className="text-orange-600 font-black">${item.price * item.quantity}</p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+            Disponibles: {stockDisponible}
+          </p>
+        </div>
+        
+        {/* Controles de cantidad con validación de Stock */}
+        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+          <button 
+            onClick={() => updateQuantity(item.id, -1)} 
+            disabled={isSubmitting} 
+            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+          >
+            <Minus size={12}/>
+          </button>
+          
+          <span className="font-black text-xs w-4 text-center">{item.quantity}</span>
+          
+          <button 
+            onClick={() => updateQuantity(item.id, 1)} 
+            disabled={isSubmitting || yaAlcanzoLimite} 
+            className={`p-2 transition-colors ${
+              yaAlcanzoLimite 
+                ? 'text-slate-200 cursor-not-allowed' 
+                : 'text-slate-900 hover:text-orange-500'
+            }`}
+          >
+            <Plus size={12}/>
+          </button>
+        </div>
       </div>
+    );
+  })}
+</div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1">

@@ -130,13 +130,12 @@ const Dashboard = () => {
   // Modales y Forms
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', is_service: false });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', is_service: false, stock: '', description: '' });
   const [postContent, setPostContent] = useState("");
   const [file, setFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const fileInputRef = useRef(null);
-
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
@@ -163,6 +162,8 @@ const Dashboard = () => {
     formData.append("name", newProduct.name);
     formData.append("price", newProduct.price);
     formData.append("is_service", newProduct.is_service);
+    formData.append("stock", newProduct.stock);
+    formData.append("description", newProduct.description);
     if (file) formData.append("image", file);
 
     try {
@@ -286,39 +287,91 @@ const Dashboard = () => {
             </div>
 
             {/* TABLA DE PRODUCTOS */}
-            <div>
-              <h2 className="text-[10px] font-black uppercase tracking-[4px] mb-6 text-slate-400 flex items-center gap-2">
-                <Package size={14}/> Menú de Productos
-              </h2>
-              <div className="bg-white rounded-[3rem] border border-2px shadow-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-slate-50/50">
-                    <tr>
-                      <th className="px-8 py-5 text-[10px] font-black  uppercase tracking-widest">Producto</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest">Precio</th>
-                      <th className="px-8 py-5 text-[10px] font-black  uppercase tracking-widest text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {items.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/30 transition-colors">
-                        <td className="px-8 py-4 flex items-center gap-4">
-                          <img src={item.image_url} className="w-12 h-12 rounded-2xl object-cover bg-slate-100" alt=""/>
-                          <span className="font-bold text-slate-800">{item.name}</span>
-                        </td>
-                        <td className="px-8 py-4 font-black text-orange-500">${item.price}</td>
-                        <td className="px-8 py-4 text-right">
-                          <div className="flex justify-end gap-1">
-                            <button onClick={() => { setEditingItem(item); setNewProduct(item); setIsEditing(true); setIsModalOpen(true); }} className="p-3 text-slate-300 hover:text-slate-900 transition-colors"><Pencil size={18}/></button>
-                            <button onClick={() => handleDeleteProduct(item.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+<div>
+  <h2 className="text-[10px] font-black uppercase tracking-[4px] mb-6 text-slate-400 flex items-center gap-2 px-4 md:px-0">
+    <Package size={14}/> Gestión de Inventario
+  </h2>
+  
+  <div className="bg-white md:rounded-[2rem] md:border border-slate-100 md:shadow-xl overflow-hidden">
+    {/* VISTA DE TABLA (Solo visible en pantallas medianas/grandes) */}
+    <table className="w-full text-left hidden md:table">
+      <thead className="bg-slate-50/80 border-b border-slate-100">
+        <tr>
+          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Producto</th>
+          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Descripción</th>
+          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Stock</th>
+          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-50">
+        {items.map((item) => (
+          <tr key={item.id} className="hover:bg-slate-50/50 transition-all group">
+            <td className="px-6 py-4 flex items-center gap-4">
+              <img src={item.image_url} className="w-12 h-12 rounded-xl object-cover shadow-sm" alt=""/>
+              <div>
+                <p className="font-bold text-slate-800 leading-none">{item.name}</p>
+                <p className="text-orange-500 font-black text-xs mt-1">${item.price}</p>
               </div>
+            </td>
+            <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">
+              {item.description || "..."}
+            </td>
+            <td className="px-6 py-4 text-center">
+              <span className={`text-[10px] font-black px-2 py-1 rounded-md ${item.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                {item.stock} UN.
+              </span>
+            </td>
+            <td className="px-6 py-4 text-right">
+              <div className="flex justify-end gap-1">
+                <button onClick={() => { setEditingItem(item); setNewProduct(item); setIsEditing(true); setIsModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600"><Pencil size={18}/></button>
+                <button onClick={() => handleDeleteProduct(item.id)} className="p-2 text-slate-400 hover:text-red-600"><Trash2 size={18}/></button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {/* VISTA MÓVIL (Solo visible en celulares) */}
+    <div className="md:hidden divide-y divide-slate-100">
+      {items.map((item) => (
+        <div key={item.id} className="p-4 flex flex-col gap-3">
+          <div className="flex items-start gap-4">
+            <img src={item.image_url} className="w-16 h-16 rounded-2xl object-cover bg-slate-100" alt=""/>
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-slate-900 text-sm uppercase">{item.name}</h3>
+                <span className="font-black text-orange-600">${item.price}</span>
+              </div>
+              <p className="text-xs text-slate-500 line-clamp-1 mb-2">{item.description}</p>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                item.stock > 0 ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'
+              }`}>
+                STOCK: {item.stock}
+              </span>
             </div>
+          </div>
+          
+          {/* Botones de acción grandes para el pulgar */}
+          <div className="flex gap-2">
+            <button 
+              onClick={() => { setEditingItem(item); setNewProduct(item); setIsEditing(true); setIsModalOpen(true); }}
+              className="flex-1 bg-slate-50 text-slate-700 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:bg-slate-200 transition-colors"
+            >
+              <Pencil size={14}/> Editar
+            </button>
+            <button 
+              onClick={() => handleDeleteProduct(item.id)}
+              className="flex-1 bg-red-50 text-red-600 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:bg-red-100 transition-colors"
+            >
+              <Trash2 size={14}/> Eliminar
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
           </>
         )}
       </div>
@@ -335,6 +388,12 @@ const Dashboard = () => {
             <form onSubmit={handleProductSubmit} className="space-y-5">
               <input type="text" placeholder="Nombre" required className="w-full p-5 bg-slate-50 rounded-3xl border-none focus:ring-2 ring-orange-500 font-bold" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
               <input type="number" placeholder="Precio ($)" required className="w-full p-5 bg-slate-50 rounded-3xl border-none focus:ring-2 ring-orange-500 font-bold" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+              <div className="flex items-center gap-1">
+              <input type="text" placeholder="Stock del producto" required className="w-full p-5 bg-slate-50 rounded-3xl border-none focus:ring-2 ring-orange-500 font-bold" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />                
+              </div>
+              <div className="flex items-center gap-1">
+              <input type="text" placeholder="Descripción del producto" required className="w-full p-5 bg-slate-50 rounded-3xl border-none focus:ring-2 ring-orange-500 font-bold" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />                
+              </div>
               <div className="flex items-center gap-1">
                 <input type="checkbox" name="is_service" id="is_service" checked={newProduct.is_service} onChange={e => setNewProduct({...newProduct, is_service: e.target.checked})} />
                 <label htmlFor="is_service">¿Es un servicio?</label>
