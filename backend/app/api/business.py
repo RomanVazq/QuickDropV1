@@ -99,7 +99,7 @@ async def get_items(
     
     items = db.query(base.Item).filter(
         base.Item.tenant_id == current_user
-    ).offset(skip).limit(limit).all()
+    ).order_by(base.Item.created_at.desc()).offset(skip).limit(limit).all()
     
     return {
         "total": total,
