@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 # Importaciones de la aplicación
 from app.database.session import engine, Base, get_db
-from app.api import orders, auth, business, social, super_admin, admin
+from app.api import orders, auth, business, social, super_admin
 from app.models.base import Tenant, Item
 
 # Inicializar tablas (Considera usar Alembic para migraciones en el futuro)
@@ -32,7 +32,7 @@ app.include_router(business.router, prefix="/api/v1/business", tags=["Gestión d
 app.include_router(orders.router, prefix="/api/v1/orders", tags=["Pedidos Públicos"])
 app.include_router(social.router, prefix="/api/v1/social", tags=["Capa Social"])
 app.include_router(super_admin.router, prefix="/api/v1/admin", tags=["Super Admin"])
-app.include_router(admin.router, prefix="/api/v1/admin", tags=["Administración"])
+
 
 @app.get("/", tags=["Salud"])
 def health_check():
