@@ -47,7 +47,7 @@ const OrdersDashboard = () => {
 
   const updateStatus = async (id, newStatus) => {
     try {
-      await api.patch(`/orders/${id}/status?status=${newStatus}`);
+      await api.put(`/orders/${id}/status?status=${newStatus}`);
       toast.success(`Estado: ${newStatus}`);
       fetchOrders(); 
     } catch (err) {
