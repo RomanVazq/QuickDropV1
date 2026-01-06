@@ -107,7 +107,7 @@ async def get_items(
         "limit": limit
     }
 
-# --- 4. CREAR PRODUCTO ---
+# --- 4. CREAR NUEVO PRODUCTO ---
 @router.post("/items")
 async def create_product(
     name: str = Form(...),
@@ -116,25 +116,32 @@ async def create_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
-
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
     image_url = None
+    
     if image:
         try:
+            # Leer contenido y preparar nombre único
             file_content = await image.read()
             file_ext = image.filename.split(".")[-1]
-            file_path = f"{tenant_id}/{name.replace(' ', '_')}_{uuid.uuid4().hex[:5]}.{file_ext}"
+            # Usamos un nombre de archivo seguro: tenant_id/uuid_nombre.ext
+            safe_name = name.replace(" ", "_").lower()
+            file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}_{safe_name}.{file_ext}"
 
+            # Subida a Supabase
             supabase.storage.from_("images").upload(
                 path=file_path,
                 file=file_content,
                 file_options={"content-type": image.content_type, "upsert": "true"}
             )
+            
+            # Obtener URL Pública
             image_url = supabase.storage.from_("images").get_public_url(file_path)
         except Exception as e:
             print(f"Error Supabase: {e}")
+            raise HTTPException(status_code=500, detail="Error al subir la imagen a la nube")
 
     new_item = base.Item(
         name=name, 
@@ -145,10 +152,12 @@ async def create_product(
         stock=stock,
         description=description
     )
+    
     db.add(new_item)
     db.commit()
     db.refresh(new_item)
     return new_item
+
 
 # --- 5. ACTUALIZAR PRODUCTO ---
 @router.put("/items/{item_id}")
@@ -163,21 +172,42 @@ async def update_product(
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
-    item = db.query(base.Item).filter(base.Item.id == item_id, base.Item.tenant_id == tenant_id).first()
+    # Buscar el item existente
+    item = db.query(base.Item).filter(
+        base.Item.id == item_id, 
+        base.Item.tenant_id == tenant_id
+    ).first()
+    
     if not item:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
     if image:
-        file_content = await image.read()
-        file_path = f"{tenant_id}/{name.replace(' ', '_')}.{image.filename.split('.')[-1]}"
-        supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"upsert": "true"})
-        item.image_url = supabase.storage.from_("images").get_public_url(file_path)
+        try:
+            # Lógica idéntica al POST para mantener la calidad de la imagen
+            file_content = await image.read()
+            file_ext = image.filename.split(".")[-1]
+            safe_name = name.replace(" ", "_").lower()
+            file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}_{safe_name}.{file_ext}"
 
+            supabase.storage.from_("images").upload(
+                path=file_path, 
+                file=file_content, 
+                file_options={"content-type": image.content_type, "upsert": "true"}
+            )
+            
+            # Actualizar la URL en el objeto item
+            item.image_url = supabase.storage.from_("images").get_public_url(file_path)
+        except Exception as e:
+            print(f"{e}")
+            raise HTTPException(status_code=500, detail="Error al actualizar la imagen")
+
+    # Actualizar campos de texto y números
     item.name = name
     item.price = price
     item.is_service = is_service
     item.stock = stock
     item.description = description
+    
     db.commit()
     db.refresh(item)
     return item
