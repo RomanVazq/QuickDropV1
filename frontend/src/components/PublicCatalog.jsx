@@ -40,6 +40,7 @@ const PublicCatalog = ({
               {/* Info Producto */}
               <div className="flex-1">
                 <h3 className="font-bold text-slate-800 text-sm uppercase leading-tight">{item.name}</h3>
+                <p className="text-[10px] text-slate-500 font-bold">{item.description}</p>
                 <p className="text-orange-600 font-black text-lg">${item.price}</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
                   {isOutOfStock ? 'No disponible' : `Stock: ${item.stock}`}
