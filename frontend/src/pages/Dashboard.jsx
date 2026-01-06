@@ -89,6 +89,10 @@ const Dashboard = () => {
       } catch (e) { setPosts([]); }
     } catch (err) {
       toast.error("Error al cargar datos");
+      if (err.response?.status === 401) {
+        toast.error("Por favor, inicia sesión nuevamente");
+        window.location.href = '/login';
+      }
     } finally { setLoading(false); }
   };
 

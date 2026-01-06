@@ -26,21 +26,39 @@ const SuperAdmin = () => {
     fetchAdminData();
   }, []);
 
-  const fetchAdminData = async () => {
-    try {
-      // Asumiendo que crearás estos endpoints en el backend
-      const [statsRes, tenantsRes] = await Promise.all([
-        api.get('/admin/stats'),
-        api.get('/admin/tenants')
-      ]);
-      setStats(statsRes.data);
-      setTenants(tenantsRes.data);
-    } catch (err) {
-      toast.error("Error al cargar datos de administración");
-    } finally {
-      setLoading(false);
+const fetchAdminData = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error("Sesión no encontrada");
+      return;
     }
-  };
+
+    const [statsRes, tenantsRes] = await Promise.all([
+      api.get('/admin/global-stats', {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      api.get('/admin/tenants', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
+
+    setStats(statsRes.data);
+    setTenants(tenantsRes.data);
+  } catch (err) {
+
+    if (err.response?.status === 403) {
+      toast.error("Acceso denegado: No eres administrador");
+    } else if (err.response?.status === 401) {
+      toast.error("Sesión expirada, vuelve a iniciar sesión");
+      window.location.href = '/login';
+    } else {
+      toast.error("Error al cargar datos del sistema");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const toggleTenantStatus = async (tenantId) => {
     try {
