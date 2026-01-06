@@ -39,6 +39,8 @@ class Item(Base):
     is_service = Column(Boolean, default=False) 
     stock = Column(Float, default=0.0)
     description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tenant = relationship("Tenant", back_populates="items")
 
 class Order(Base):

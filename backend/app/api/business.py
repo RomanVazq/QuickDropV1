@@ -117,6 +117,7 @@ async def create_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+    created_at: datetime = Form(None),
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
@@ -151,7 +152,8 @@ async def create_product(
         tenant_id=tenant_id,
         image_url=image_url,
         stock=stock,
-        description=description
+        description=description,
+        created_at=created_at if created_at else datetime.utcnow()
     )
     
     db.add(new_item)
@@ -170,6 +172,7 @@ async def update_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+    updated_at: datetime = Form(None),
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
@@ -211,7 +214,7 @@ async def update_product(
         item.description = description
     else:
         item.description = ""    
-    
+    item.updated_at = updated_at if updated_at else datetime.utcnow()
     db.commit()
     db.refresh(item)
     return item
