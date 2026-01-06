@@ -20,7 +20,7 @@ app = FastAPI(
 # En producción, cambia ["*"] por ["http://tu-dominio-frontend.com"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://quickdropv1.onrender.com/"], 
+    allow_origins=["https://quickdropv1.onrender.com"], 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
