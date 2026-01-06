@@ -45,15 +45,18 @@ const OrdersDashboard = () => {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
-  const updateStatus = async (id, newStatus) => {
-    try {
-      await api.patch(`/orders/${id}/status?status=${newStatus}`);
-      toast.success(`Estado: ${newStatus}`);
-      fetchOrders(); 
-    } catch (err) {
-      toast.error("Error al actualizar");
-    }
-  };
+const updateStatus = async (id, newStatus) => {
+  try {
+    // URL limpia + Objeto con la data
+    await api.patch(`/orders/${id}/status`, { status: newStatus });
+    
+    toast.success(`Estado actualizado: ${newStatus}`);
+    fetchOrders(); 
+  } catch (err) {
+    console.error("Detalle del error:", err.response?.data);
+    toast.error("Error al actualizar");
+  }
+};
 
   return (
     <div className="p-6 max-w-6xl mx-auto animate-in fade-in duration-500">

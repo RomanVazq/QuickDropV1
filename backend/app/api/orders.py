@@ -148,7 +148,7 @@ async def get_my_orders(
 @router.patch("/{order_id}/status")
 async def update_order_status(
     order_id: str, 
-    status: str, 
+    status: str = Body(..., embed=True),
     db: Session = Depends(get_db), 
     current_user = Depends(get_current_user)
 ):
