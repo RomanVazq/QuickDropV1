@@ -207,7 +207,10 @@ async def update_product(
     item.price = price
     item.is_service = is_service
     item.stock = stock
-    item.description = description
+    if description is not None:
+        item.description = description
+    else:
+        item.description = ""    
     
     db.commit()
     db.refresh(item)
