@@ -139,7 +139,7 @@ const PublicCart = ({
       {/* FORMULARIO DE CLIENTE */}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1">
-          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">¿Quién recibe?</label>
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Tú Nombre:</label>
           <input 
             required 
             placeholder="Nombre completo"
@@ -183,7 +183,7 @@ const PublicCart = ({
           <textarea 
             disabled={isSubmitting} 
             className="w-full bg-slate-50 p-5 rounded-2xl font-medium h-24 outline-none border-2 border-transparent focus:border-slate-900 resize-none" 
-            placeholder="Ej. Tocar el timbre fuerte, casa color verde..." 
+            placeholder="EJ: Sin cebolla, llegar después de las 6pm, etc." 
             value={formData.notes}
             onChange={e => setFormData({...formData, notes: e.target.value})} 
           />
