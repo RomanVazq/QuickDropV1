@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { Package, CheckCircle, XCircle, MapPin, User, DollarSign, Filter } from 'lucide-react';
+import { Package, CheckCircle, XCircle, MapPin, User, DollarSign, Filter, FileText  } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const OrdersDashboard = () => {
@@ -137,6 +137,13 @@ const updateStatus = async (id, newStatus) => {
                   <div className="overflow-hidden">
                     <p className="text-[10px] uppercase font-black text-slate-400">Dirección</p>
                     <p className="text-sm text-slate-600 truncate">{order.address}</p>
+                  </div>
+                </div>
+                  <div className="flex items-center gap-3">
+                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><FileText size={18}/></div>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] uppercase font-black text-slate-400">Notas</p>
+                    <p className="text-sm text-slate-600 truncate">{order.notes}</p>
                   </div>
                 </div>
 
