@@ -139,13 +139,18 @@ const updateStatus = async (id, newStatus) => {
                     <p className="text-sm text-slate-600 truncate">{order.address}</p>
                   </div>
                 </div>
-                  <div className="flex items-center gap-3">
-                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><FileText size={18}/></div>
-                  <div className="overflow-hidden">
-                    <p className="text-[10px] uppercase font-black text-slate-400">Notas</p>
-                    <p className="text-sm text-slate-600 truncate">{order.notes}</p>
-                  </div>
+
+              <div className="flex items-start gap-3">
+                <div className="bg-slate-50 p-2 rounded-xl text-slate-900 shrink-0"> 
+                  <FileText size={18}/>
                 </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase font-black text-slate-400">Notas</p>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap break-words">
+                    {order.notes || "Sin notas adicionales"}
+                  </p>
+                </div>
+              </div>
 
                 <div className="flex items-center gap-3">
                   <div className="bg-orange-50 p-2 rounded-xl text-orange-600"><DollarSign size={18}/></div>
