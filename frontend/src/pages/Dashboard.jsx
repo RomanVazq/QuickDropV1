@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import OrdersDashboard from './OrdersDashboard';
+ 
 import { 
   Package, ShoppingBag, Plus, Trash2, X, Pencil, Camera, 
   Grid3X3, Heart, Image as ImageIcon, MapPin, User, 
@@ -8,6 +9,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { ConfigBusiness } from '../components/PerfilCustom';
 
 // --- COMPONENTE INTERNO: GESTIÓN DE POSTS ---
 const PostsView = ({ posts, onDelete }) => {
@@ -171,7 +173,7 @@ const Dashboard = () => {
               <button onClick={() => setActiveTab('main')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'main' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Inventario</button>
               <button onClick={() => setActiveTab('orders')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'orders' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Pedidos</button>
               <button onClick={() => setActiveTab('posts')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'posts' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Muro</button>
-            </div>
+              <button onClick={() => setActiveTab('profile')} className={`whitespace-nowrap text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === 'profile' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-100'}`}>Perfil</button>            </div>
           </div>
           
           <div className="flex gap-3 w-full md:w-auto">
@@ -185,7 +187,7 @@ const Dashboard = () => {
         </div>
 
         {activeTab === 'orders' ? <OrdersDashboard /> : 
-         activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> : (
+         activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> : activeTab === 'profile' ? <ConfigBusiness /> : (
           <>
             {/* STATS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-12">

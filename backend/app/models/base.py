@@ -11,6 +11,9 @@ class Tenant(Base):
     name = Column(String, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
     phone = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)
+    primary_color = Column(String, default="#ffffff")
+    secundary_color = Column(String, default="#000000")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones vinculadas correctamente para evitar errores de Mapper

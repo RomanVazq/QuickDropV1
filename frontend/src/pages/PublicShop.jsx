@@ -5,6 +5,7 @@ import { ShoppingBag } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Componentes internos
+import { Header } from '../components/Header';
 import PublicCatalog from '../components/PublicCatalog';
 import PublicCart from '../components/PublicCart';
 import ServiceModal from '../components/ServiceModal';
@@ -192,17 +193,7 @@ const PublicShop = () => {
       )}
 
       {/* HEADER */}
-      <div className="flex items-center gap-4 p-6 pt-12 border-b border-slate-50">
-        <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white text-xl font-black italic shadow-lg">
-          {data.business?.name?.charAt(0)}
-        </div>
-        <div>
-          <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter">{data.business?.name}</h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase flex items-center gap-1">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Tienda verificada
-          </p>
-        </div>
-      </div>
+      <Header data={data} />
 
       {/* TABS */}
       {step === 1 && (

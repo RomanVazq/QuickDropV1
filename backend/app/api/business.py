@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 router = APIRouter()
 
 # --- CONFIGURACIÓN SUPABASE ---
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vetqpetunrnscqizstix.supabase.co"
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "sb_publishable_EO8bJaRdWDQoBlr1fpZ6Xg_l0CKiq67"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- DEPENDENCIA PARA RUTAS PRIVADAS ---
@@ -64,7 +64,10 @@ def get_public_business_data(
             "id": tenant.id,
             "name": tenant.name,
             "slug": tenant.slug,
-            "phone": tenant.phone
+            "phone": tenant.phone,
+            "primary_color": tenant.primary_color,
+            "secundary_color": tenant.secundary_color,
+            "logo_url": tenant.logo_url
         },
         "items": items,
         "total_items": total_items, # Campo clave para el frontend
@@ -83,7 +86,11 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
     return {
         "name": tenant.name,
         "slug": tenant.slug,
-        "wallet": {"balance": wallet.balance if wallet else 0}
+        "wallet": {"balance": wallet.balance if wallet else 0},
+        "primary_color": tenant.primary_color,
+        "secundary_color": tenant.secundary_color,
+        "logo_url": tenant.logo_url
+
     }
 
 # --- 3. GESTIÓN DE PRODUCTOS (LISTAR) ---
@@ -267,3 +274,59 @@ async def get_availability(slug: str, date: str, db: Session = Depends(get_db)):
     busy_times = [order.appointment_datetime.strftime("%H:%M") for order in orders]
     
     return {"busy_times": busy_times}    
+
+@router.patch("/config")
+async def update_business_config(
+    primary_color: str = Form("#ffffff"),
+    secundary_color: str = Form("#000000"),
+    file: UploadFile = File(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_tenant_id)
+):
+    # 1. Buscar el negocio del usuario autenticado
+    biz = db.query(base.Tenant).filter(base.Tenant.id == current_user).first()
+    if not biz:
+        raise HTTPException(status_code=404, detail="Negocio no encontrado")
+
+    # 2. Si el usuario envió un archivo, procesarlo con Supabase
+    if file:
+        try:
+            # Leer el contenido del archivo en bytes
+            file_content = await file.read()
+            
+            # Crear una ruta única: logos/ID_NEGOCIO/UUID_NOMBRE.png
+            file_ext = file.filename.split('.')[-1]
+            file_path = f"logos/{biz.id}/{uuid.uuid4()}.{file_ext}"
+            
+            # Subir a Supabase Storage (Bucket 'images')
+            # x-upsert permite sobrescribir si fuera necesario
+            supabase.storage.from_("images").upload(
+                path=file_path,
+                file=file_content,
+                file_options={
+                    "content-type": file.content_type,
+                    "x-upsert": "true"
+                }
+            )
+            
+            # Obtener la URL pública final
+            public_url_res = supabase.storage.from_("images").get_public_url(file_path)
+            biz.logo_url = public_url_res
+            
+        except Exception as e:
+            print(f"Error Supabase: {e}")
+            raise HTTPException(status_code=500, detail="Error al subir la imagen al servidor de almacenamiento")
+
+    # 3. Actualizar el color de fondo del Header
+    biz.primary_color = primary_color
+    biz.secundary_color = secundary_color  # Valor fijo por ahora
+    
+    db.commit()
+    db.refresh(biz)
+    
+    return {
+        "status": "success",
+        "logo_url": biz.logo_url,
+        "primary_color": biz.primary_color,
+        "secundary_color": biz.secundary_color
+    }    
