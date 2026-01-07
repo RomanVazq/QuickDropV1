@@ -12,7 +12,7 @@ from app.models.base import Tenant, Item
 Base.metadata.create_all(bind=engine)
 
 SECRET_INTERNAL_KEY = os.getenv("SECRET_INTERNAL_KEY")
-
+app = FastAPI()
 @app.middleware("http")
 async def verify_origin_key(request: Request, call_next):
     # Excluir rutas de docs y también la ruta de salud de Render si la usas
