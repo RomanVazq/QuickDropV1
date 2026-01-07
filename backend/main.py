@@ -15,7 +15,7 @@ const SECRET_INTERNAL_KEY = os.getenv("SECRET_INTERNAL_KEY")
 @app.middleware("http")
 async def verify_origin_key(request: Request, call_next):
     # Excluir rutas de docs y también la ruta de salud de Render si la usas
-    if request.url.path in ["/docs", "/openapi.json", "/redoc", "/"]:
+    if request.url.path in ["/"]:
         return await call_next(request)
         
     api_key = request.headers.get("X-Internal-Client")
