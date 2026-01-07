@@ -10,7 +10,7 @@ from app.models.base import Tenant, Item
 # Inicializar tablas (Considera usar Alembic para migraciones en el futuro)
 Base.metadata.create_all(bind=engine)
 
-const SECRET_INTERNAL_KEY = os.getenv("SECRET_INTERNAL_KEY")
+SECRET_INTERNAL_KEY = os.getenv("SECRET_INTERNAL_KEY")
 
 @app.middleware("http")
 async def verify_origin_key(request: Request, call_next):
