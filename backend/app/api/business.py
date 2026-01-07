@@ -14,8 +14,8 @@ from datetime import datetime, timedelta
 router = APIRouter()
 
 # --- CONFIGURACIÓN SUPABASE ---
-SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vetqpetunrnscqizstix.supabase.co"
-SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "sb_publishable_EO8bJaRdWDQoBlr1fpZ6Xg_l0CKiq67"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- DEPENDENCIA PARA RUTAS PRIVADAS ---
