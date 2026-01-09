@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Minus, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Minus, Heart, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
 const PublicCatalog = ({
   activeTab,
