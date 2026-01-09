@@ -48,7 +48,6 @@ def get_public_business_data(
     # Base de la consulta de items
     query = db.query(base.Item).filter(
         base.Item.tenant_id == tenant.id,
-        base.Item.is_active == True
     )
 
     # Lógica de Filtro de Búsqueda
