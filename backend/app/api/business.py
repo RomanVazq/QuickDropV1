@@ -1,15 +1,17 @@
 import os
 import uuid
+from datetime import datetime, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from jose import jwt
+from supabase import create_client, Client
+
 from app.database.session import get_db
 from app.models import base
 from app.api.auth import oauth2_scheme
-from jose import jwt
 from app.core.security import SECRET_KEY, ALGORITHM
-from supabase import create_client, Client
-from typing import Optional
-from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -18,46 +20,53 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- DEPENDENCIA PARA RUTAS PRIVADAS ---
+# --- SEGURIDAD ---
 def get_current_tenant_id(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         tenant_id = payload.get("tenant_id")
         if not tenant_id:
-            raise HTTPException(status_code=401, detail="Token inválido: falta tenant_id")
+            raise HTTPException(status_code=401, detail="Token inválido")
         return tenant_id
     except Exception:
         raise HTTPException(status_code=401, detail="No se pudo validar el token")
+
+# --- ENDPOINTS PÚBLICOS ---
 
 @router.get("/public/{slug}")
 def get_public_business_data(
     slug: str, 
     skip: int = 0, 
     limit: int = 5, 
+    search: Optional[str] = None, # Parámetro de búsqueda añadido
     db: Session = Depends(get_db)
 ):
-    # 1. Buscar el negocio por su slug
     tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
-    
     if not tenant:
         raise HTTPException(status_code=404, detail="El negocio no existe")
 
-    # 2. Obtener el total de productos (esencial para la paginación del frontend)
-    total_items = db.query(base.Item).filter(base.Item.tenant_id == tenant.id).count()
+    # Base de la consulta de items
+    query = db.query(base.Item).filter(
+        base.Item.tenant_id == tenant.id,
+        base.Item.is_active == True
+    )
 
-    # 3. Obtener solo la "rebanada" (slice) de productos solicitada
-    items = db.query(base.Item)\
-              .filter(base.Item.tenant_id == tenant.id)\
-              .offset(skip)\
-              .limit(limit)\
-              .all()
+    # Lógica de Filtro de Búsqueda
+    if search:
+        query = query.filter(
+            or_(
+                base.Item.name.ilike(f"%{search}%"),
+                base.Item.description.ilike(f"%{search}%")
+            )
+        )
 
-    # 4. (Opcional) Traer los posts recientes para la pestaña social
+    total_items = query.count()
+    items = query.offset(skip).limit(limit).all()
+
     posts = db.query(base.Post)\
               .filter(base.Post.tenant_id == tenant.id)\
               .order_by(base.Post.created_at.desc())\
-              .limit(10)\
-              .all()
+              .limit(10).all()
 
     return {
         "business": {
@@ -70,11 +79,32 @@ def get_public_business_data(
             "logo_url": tenant.logo_url
         },
         "items": items,
-        "total_items": total_items, # Campo clave para el frontend
+        "total_items": total_items,
         "posts": posts
     }
 
-# --- 2. INFORMACIÓN PRIVADA (PARA EL DUEÑO) ---
+@router.get("/public/availability/{slug}")
+async def get_availability(slug: str, date: str, db: Session = Depends(get_db)):
+    tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Negocio no encontrado")
+
+    try:
+        search_date = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+
+    orders = db.query(base.Order).filter(
+        base.Order.tenant_id == tenant.id,
+        base.Order.status != "cancelled",
+        base.Order.appointment_datetime >= search_date,
+        base.Order.appointment_datetime < search_date + timedelta(days=1)
+    ).all()
+
+    return {"busy_times": [order.appointment_datetime.strftime("%H:%M") for order in orders]}
+
+# --- GESTIÓN PRIVADA (DUEÑO) ---
+
 @router.get("/me")
 def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(get_current_tenant_id)):
     tenant = db.query(base.Tenant).filter(base.Tenant.id == tenant_id).first()
@@ -90,32 +120,16 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
         "primary_color": tenant.primary_color,
         "secundary_color": tenant.secundary_color,
         "logo_url": tenant.logo_url
-
     }
 
-# --- 3. GESTIÓN DE PRODUCTOS (LISTAR) ---
 @router.get("/items")
-async def get_items(
-    skip: int = 0, 
-    limit: int = 5, 
-    db: Session = Depends(get_db), 
-    current_user = Depends(get_current_tenant_id)
-):
-    # Contamos el total para que el frontend sepa cuántas páginas hay
-    total = db.query(base.Item).filter(base.Item.tenant_id == current_user).count()
+async def get_items(skip: int = 0, limit: int = 5, db: Session = Depends(get_db), current_user = Depends(get_current_tenant_id)):
+    query = db.query(base.Item).filter(base.Item.tenant_id == current_user)
+    total = query.count()
+    items = query.order_by(base.Item.updated_at.desc()).offset(skip).limit(limit).all()
     
-    items = db.query(base.Item).filter(
-        base.Item.tenant_id == current_user
-    ).order_by(base.Item.updated_at.desc()).offset(skip).limit(limit).all()
-    
-    return {
-        "total": total,
-        "items": items,
-        "skip": skip,
-        "limit": limit
-    }
+    return {"total": total, "items": items, "skip": skip, "limit": limit}
 
-# --- 4. CREAR NUEVO PRODUCTO ---
 @router.post("/items")
 async def create_product(
     name: str = Form(...),
@@ -124,52 +138,26 @@ async def create_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
-    created_at: datetime = Form(None),
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
     image_url = None
-    
     if image:
-        try:
-            # Leer contenido y preparar nombre único
-            file_content = await image.read()
-            file_ext = image.filename.split(".")[-1]
-            # Usamos un nombre de archivo seguro: tenant_id/uuid_nombre.ext
-            safe_name = name.replace(" ", "_").lower()
-            file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}_{safe_name}.{file_ext}"
-
-            # Subida a Supabase
-            supabase.storage.from_("images").upload(
-                path=file_path,
-                file=file_content,
-                file_options={"content-type": image.content_type, "upsert": "true"}
-            )
-            
-            # Obtener URL Pública
-            image_url = supabase.storage.from_("images").get_public_url(file_path)
-        except Exception as e:
-            print(f"Error Supabase: {e}")
-            raise HTTPException(status_code=500, detail="Error al subir la imagen a la nube")
+        file_content = await image.read()
+        file_ext = image.filename.split(".")[-1]
+        file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}.{file_ext}"
+        supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"content-type": image.content_type})
+        image_url = supabase.storage.from_("images").get_public_url(file_path)
 
     new_item = base.Item(
-        name=name, 
-        price=price, 
-        is_service=is_service, 
-        tenant_id=tenant_id,
-        image_url=image_url,
-        stock=stock,
-        description=description,
-        created_at=created_at if created_at else datetime.utcnow()
+        name=name, price=price, is_service=is_service, tenant_id=tenant_id,
+        image_url=image_url, stock=stock, description=description, created_at=datetime.utcnow()
     )
-    
     db.add(new_item)
     db.commit()
     db.refresh(new_item)
     return new_item
 
-
-# --- 5. ACTUALIZAR PRODUCTO ---
 @router.put("/items/{item_id}")
 async def update_product(
     item_id: str,
@@ -179,101 +167,40 @@ async def update_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
-    updated_at: datetime = Form(None),
     db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_current_tenant_id)
-):
-    # Buscar el item existente
-    item = db.query(base.Item).filter(
-        base.Item.id == item_id, 
-        base.Item.tenant_id == tenant_id
-    ).first()
-    
-    if not item:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
-    if image:
-        try:
-            # Lógica idéntica al POST para mantener la calidad de la imagen
-            file_content = await image.read()
-            file_ext = image.filename.split(".")[-1]
-            safe_name = name.replace(" ", "_").lower()
-            file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}_{safe_name}.{file_ext}"
-
-            supabase.storage.from_("images").upload(
-                path=file_path, 
-                file=file_content, 
-                file_options={"content-type": image.content_type, "upsert": "true"}
-            )
-            
-            # Actualizar la URL en el objeto item
-            item.image_url = supabase.storage.from_("images").get_public_url(file_path)
-        except Exception as e:
-            print(f"{e}")
-            raise HTTPException(status_code=500, detail="Error al actualizar la imagen")
-
-    # Actualizar campos de texto y números
-    item.name = name
-    item.price = price
-    item.is_service = is_service
-    item.stock = stock
-    if description is not None:
-        item.description = description
-    else:
-        item.description = ""    
-    item.updated_at = updated_at if updated_at else datetime.utcnow()
-    db.commit()
-    db.refresh(item)
-    return item
-
-# --- 6. ELIMINAR PRODUCTO ---
-@router.delete("/items/{item_id}")
-def delete_product(
-    item_id: str, 
-    db: Session = Depends(get_db), 
     tenant_id: str = Depends(get_current_tenant_id)
 ):
     item = db.query(base.Item).filter(base.Item.id == item_id, base.Item.tenant_id == tenant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
+    if image:
+        file_content = await image.read()
+        file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}.{image.filename.split('.')[-1]}"
+        supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"content-type": image.content_type, "upsert": "true"})
+        item.image_url = supabase.storage.from_("images").get_public_url(file_path)
+
+    item.name, item.price, item.is_service, item.stock = name, price, is_service, stock
+    item.description = description or ""
+    item.updated_at = datetime.utcnow()
+    db.commit()
+    return item
+
+@router.delete("/items/{item_id}")
+def delete_product(item_id: str, db: Session = Depends(get_db), tenant_id: str = Depends(get_current_tenant_id)):
+    item = db.query(base.Item).filter(base.Item.id == item_id, base.Item.tenant_id == tenant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
     if item.image_url:
         try:
-            file_path = item.image_url.split("/public/images/")[1]
-            supabase.storage.from_("images").remove([file_path])
+            path = item.image_url.split("/public/images/")[1]
+            supabase.storage.from_("images").remove([path])
         except: pass
 
     db.delete(item)
     db.commit()
     return {"detail": "Producto eliminado"}
-
-@router.get("/public/availability/{slug}")
-async def get_availability(slug: str, date: str, db: Session = Depends(get_db)):
-    """
-    date debe venir en formato YYYY-MM-DD
-    """
-    tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Negocio no encontrado")
-
-    # Parsear la fecha buscada
-    try:
-        search_date = datetime.strptime(date, "%Y-%m-%d")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
-
-    # Buscar todas las órdenes de ese día que no estén canceladas
-    orders = db.query(base.Order).filter(
-        base.Order.tenant_id == tenant.id,
-        base.Order.status != "cancelled",
-        base.Order.appointment_datetime >= search_date,
-        base.Order.appointment_datetime < search_date + timedelta(days=1)
-    ).all()
-
-    # Retornar solo las horas ocupadas (ej: ["14:00", "15:30"])
-    busy_times = [order.appointment_datetime.strftime("%H:%M") for order in orders]
-    
-    return {"busy_times": busy_times}    
 
 @router.patch("/config")
 async def update_business_config(
@@ -283,50 +210,16 @@ async def update_business_config(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_tenant_id)
 ):
-    # 1. Buscar el negocio del usuario autenticado
     biz = db.query(base.Tenant).filter(base.Tenant.id == current_user).first()
     if not biz:
         raise HTTPException(status_code=404, detail="Negocio no encontrado")
 
-    # 2. Si el usuario envió un archivo, procesarlo con Supabase
     if file:
-        try:
-            # Leer el contenido del archivo en bytes
-            file_content = await file.read()
-            
-            # Crear una ruta única: logos/ID_NEGOCIO/UUID_NOMBRE.png
-            file_ext = file.filename.split('.')[-1]
-            file_path = f"logos/{biz.id}/{uuid.uuid4()}.{file_ext}"
-            
-            # Subir a Supabase Storage (Bucket 'images')
-            # x-upsert permite sobrescribir si fuera necesario
-            supabase.storage.from_("images").upload(
-                path=file_path,
-                file=file_content,
-                file_options={
-                    "content-type": file.content_type,
-                    "x-upsert": "true"
-                }
-            )
-            
-            # Obtener la URL pública final
-            public_url_res = supabase.storage.from_("images").get_public_url(file_path)
-            biz.logo_url = public_url_res
-            
-        except Exception as e:
-            print(f"Error Supabase: {e}")
-            raise HTTPException(status_code=500, detail="Error al subir la imagen al servidor de almacenamiento")
+        content = await file.read()
+        path = f"logos/{biz.id}/{uuid.uuid4()}.{file.filename.split('.')[-1]}"
+        supabase.storage.from_("images").upload(path=path, file=content, file_options={"content-type": file.content_type, "x-upsert": "true"})
+        biz.logo_url = supabase.storage.from_("images").get_public_url(path)
 
-    # 3. Actualizar el color de fondo del Header
-    biz.primary_color = primary_color
-    biz.secundary_color = secundary_color  # Valor fijo por ahora
-    
+    biz.primary_color, biz.secundary_color = primary_color, secundary_color
     db.commit()
-    db.refresh(biz)
-    
-    return {
-        "status": "success",
-        "logo_url": biz.logo_url,
-        "primary_color": biz.primary_color,
-        "secundary_color": biz.secundary_color
-    }    
+    return {"status": "success", "logo_url": biz.logo_url, "primary_color": biz.primary_color}

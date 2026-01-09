@@ -1,22 +1,35 @@
 import React from 'react';
 import { Plus, Minus, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const PublicCatalog = ({ 
-  activeTab, 
-  data, 
-  cart, 
-  updateQuantity, 
-  handleLike, 
+const PublicCatalog = ({
+  activeTab,
+  data,
+  cart,
+  updateQuantity,
+  handleLike,
   likedPosts,
   // Props de paginación
   currentPage,
   setCurrentPage,
-  totalItems 
+  totalItems
 }) => {
   const itemsPerPage = 5;
 
   // VISTA DE PRODUCTOS (MENÚ)
   if (activeTab === 'menu') {
+    if (data.items.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in">
+          <div className="bg-slate-50 p-6 rounded-full mb-4">
+            <Search size={40} className="text-slate-300" />
+          </div>
+          <h3 className="font-bold text-slate-800 uppercase text-sm">Sin coincidencias</h3>
+          <p className="text-xs text-slate-400 font-medium mt-1">
+            No encontramos productos que coincidan con tu búsqueda.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="p-4 space-y-3 animate-in fade-in duration-300">
         {data.items.map(item => {
@@ -26,7 +39,7 @@ const PublicCatalog = ({
 
           return (
             <div key={item.id} className={`flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm transition-opacity ${isOutOfStock ? 'opacity-60' : ''}`}>
-              
+
               {/* Imagen con badge de stock */}
               <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
                 <img src={item.image_url} className={`w-full h-full object-cover ${isOutOfStock ? 'grayscale' : ''}`} alt={item.name} />
@@ -36,7 +49,7 @@ const PublicCatalog = ({
                   </div>
                 )}
               </div>
-              
+
               {/* Info Producto */}
               <div className="flex-1">
                 <h3 className="font-bold text-slate-800 text-sm uppercase leading-tight">{item.name}</h3>
@@ -49,23 +62,23 @@ const PublicCatalog = ({
 
               {/* Controles de Carrito */}
               {!cart[item.id] ? (
-                <button 
+                <button
                   disabled={isOutOfStock}
-                  onClick={() => updateQuantity(item.id, 1)} 
+                  onClick={() => updateQuantity(item.id, 1)}
                   className={`p-4 rounded-xl ${isOutOfStock ? 'bg-slate-100 text-slate-300' : 'bg-slate-50 text-slate-900 active:bg-slate-200'}`}
                 >
                   <Plus size={18} />
                 </button>
               ) : (
                 <div className="flex items-center gap-2 bg-slate-900 text-white p-1 rounded-xl">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="p-2"><Minus size={14}/></button>
+                  <button onClick={() => updateQuantity(item.id, -1)} className="p-2"><Minus size={14} /></button>
                   <span className="font-black text-sm w-4 text-center">{currentQty}</span>
-                  <button 
+                  <button
                     disabled={hasReachedLimit}
-                    onClick={() => updateQuantity(item.id, 1)} 
+                    onClick={() => updateQuantity(item.id, 1)}
                     className={`p-2 ${hasReachedLimit ? 'text-slate-600' : 'text-white'}`}
                   >
-                    <Plus size={14}/>
+                    <Plus size={14} />
                   </button>
                 </div>
               )}
@@ -75,24 +88,24 @@ const PublicCatalog = ({
 
         {/* --- CONTROLES DE PAGINACIÓN --- */}
         <div className="flex items-center justify-between pt-6 pb-8 border-t border-slate-50 mt-4">
-          <button 
+          <button
             disabled={currentPage === 0}
-            onClick={() => { setCurrentPage(p => p - 1); window.scrollTo(0,0); }}
+            onClick={() => { setCurrentPage(p => p - 1); window.scrollTo(0, 0); }}
             className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest disabled:opacity-20"
           >
-            <ChevronLeft size={16}/> Anterior
+            <ChevronLeft size={16} /> Anterior
           </button>
-          
+
           <span className="text-[10px] font-black bg-slate-100 px-4 py-1.5 rounded-full">
             {currentPage + 1}
           </span>
 
-          <button 
+          <button
             disabled={(currentPage + 1) * itemsPerPage >= totalItems}
-            onClick={() => { setCurrentPage(p => p + 1); window.scrollTo(0,0); }}
+            onClick={() => { setCurrentPage(p => p + 1); window.scrollTo(0, 0); }}
             className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest disabled:opacity-20"
           >
-            Siguiente <ChevronRight size={16}/>
+            Siguiente <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -112,43 +125,42 @@ const PublicCatalog = ({
 
           {/* Contenedor de imagen tipo Instagram para la Galería */}
           <div className="w-full aspect-square overflow-hidden bg-slate-50">
-            <img 
-              src={post.image_url} 
-              className="w-full h-full object-cover cursor-pointer select-none" 
-              alt="" 
-              onDoubleClick={() => handleLike(post.id)} 
+            <img
+              src={post.image_url}
+              className="w-full h-full object-cover cursor-pointer select-none"
+              alt=""
+              onDoubleClick={() => handleLike(post.id)}
             />
           </div>
 
-<div className="p-4">
-  <div className="flex justify-between items-start gap-4">
-    {/* 1. Lado Izquierdo: El contenido del post */}
-    <div className="flex-1">
-      <p className="text-sm leading-relaxed text-slate-700 font-medium">
-        {post.content}
-      </p>
-    </div>
+          <div className="p-4">
+            <div className="flex justify-between items-start gap-4">
+              {/* 1. Lado Izquierdo: El contenido del post */}
+              <div className="flex-1">
+                <p className="text-sm leading-relaxed text-slate-700 font-medium">
+                  {post.content}
+                </p>
+              </div>
 
-    {/* 2. Lado Derecho: Interacciones (Icono + Conteo) */}
-    <div className="flex flex-col items-center gap-1">
-      <button 
-        onClick={() => handleLike(post.id)} 
-        className="transition-transform active:scale-125"
-      >
-        <Heart 
-          size={24} 
-          className={`transition-all ${
-            likedPosts.has(post.id) ? 'fill-red-500 text-red-500' : 'text-slate-900'
-          }`} 
-        />
-      </button>
-      
-      <span className="font-black text-[10px] whitespace-nowrap uppercase tracking-tighter">
-        {post.likes_count || 0} {post.likes_count === 1 ? 'Like' : 'Likes'}
-      </span>
-    </div>
-  </div>
-</div>
+              {/* 2. Lado Derecho: Interacciones (Icono + Conteo) */}
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={() => handleLike(post.id)}
+                  className="transition-transform active:scale-125"
+                >
+                  <Heart
+                    size={24}
+                    className={`transition-all ${likedPosts.has(post.id) ? 'fill-red-500 text-red-500' : 'text-slate-900'
+                      }`}
+                  />
+                </button>
+
+                <span className="font-black text-[10px] whitespace-nowrap uppercase tracking-tighter">
+                  {post.likes_count || 0} {post.likes_count === 1 ? 'Like' : 'Likes'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       ))}
     </div>
