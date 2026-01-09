@@ -9,6 +9,7 @@ const PublicCatalog = ({
   handleLike,
   likedPosts,
   isloading,
+  inputValue,
   // Props de paginación
   currentPage,
   setCurrentPage,

@@ -246,6 +246,7 @@ const PublicShop = () => {
             totalItems={totalItems}
             searchQuery={searchQuery}
             isloading={loading}
+            inputValue={inputValue}
           />
         ) : (
           <PublicCart
