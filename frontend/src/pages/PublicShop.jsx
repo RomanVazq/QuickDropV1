@@ -177,7 +177,7 @@ const PublicShop = () => {
 
 if (loading && data.items.length === 0 && !inputValue) {
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-white">
+    <div className="h-screen flex flex-col items-center justify-center bg-white opacity-50">
       <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
