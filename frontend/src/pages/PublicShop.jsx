@@ -175,13 +175,6 @@ const PublicShop = () => {
   const cartTotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const hasService = cartArray.some(item => item.is_service);
 
-if (loading && data.items.length === 0 && !inputValue) {
-  return (
-    <div className="h-screen flex flex-col items-center justify-center bg-white opacity-50">
-      <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
-}
 
   return (
     <div className="min-h-screen bg-white pb-20 font-sans">
@@ -251,7 +244,8 @@ if (loading && data.items.length === 0 && !inputValue) {
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             totalItems={totalItems}
-            searchQuery={searchQuery} // Pasar la query para estados vacíos
+            searchQuery={searchQuery}
+            isloading={loading}
           />
         ) : (
           <PublicCart
