@@ -189,7 +189,10 @@ async def create_product(
         e_list = json.loads(extras)
         for e in e_list:
             db.add(base.ItemExtra(item_id=new_item.id, name=e['name'], price=float(e['price'])))
-
+    if description:
+        new_item.description = description
+        else:
+        new_item.description = ""
     db.commit()
     db.refresh(new_item)
     return new_item
