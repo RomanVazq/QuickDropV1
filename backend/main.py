@@ -62,7 +62,7 @@ async def verify_origin_key(request: Request, call_next):
 # Se ejecuta DESPUÉS del middleware de seguridad en el flujo de respuesta
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://quickdropv1.onrender.com", "http://localhost:5173"], 
+    allow_origins=["https://quickdrop.shop","https://www.quickdrop.shop", "http://localhost:5173"], 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"], # Esto permite que el header 'X-Internal-Client' pase sin problemas
