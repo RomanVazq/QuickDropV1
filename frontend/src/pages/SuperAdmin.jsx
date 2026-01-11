@@ -49,12 +49,13 @@ const fetchAdminData = async () => {
 
     if (err.response?.status === 403) {
       toast.error("Acceso denegado: No eres administrador");
-      window.location.href = '/';
+      window.location.href = '/login';
     } else if (err.response?.status === 401) {
       toast.error("Sesión expirada, vuelve a iniciar sesión");
       window.location.href = '/login';
     } else {
       toast.error("Error al cargar datos del sistema");
+      window.location.href = '/login';
     }
   } finally {
     setLoading(false);

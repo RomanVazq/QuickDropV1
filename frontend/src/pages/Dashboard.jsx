@@ -172,61 +172,136 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {activeTab === 'orders' ? <OrdersDashboard /> : 
-         activeTab === 'posts' ? <PostsView posts={posts} onDelete={() => {}} /> : 
-         activeTab === 'profile' ? <ConfigBusiness /> : (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* STATS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-              <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Créditos de Pedidos</p>
-                 <p className="text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
-              </div>
-              <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Catálogo Activo</p>
-                 <p className="text-4xl font-black italic">{totalItems} <span className="text-sm not-italic opacity-30">ITEMS</span></p>
-              </div>
-            </div>
+{activeTab === 'orders' ? <OrdersDashboard /> : 
+ activeTab === 'posts' ? <PostsView posts={posts} onDelete={() => {}} /> : 
+ activeTab === 'profile' ? <ConfigBusiness /> : (
+  <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+    
+    {/* STATS */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+      <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm transition-hover hover:shadow-md">
+         <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Créditos de Pedidos</p>
+         <p className="text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
+      </div>
+      <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm transition-hover hover:shadow-md">
+         <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Catálogo Activo</p>
+         <p className="text-4xl font-black italic text-slate-900">{totalItems} <span className="text-sm not-italic opacity-30">ITEMS</span></p>
+      </div>
+    </div>
 
-            {/* TABLA DESKTOP */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-100">
-                  <tr>
-                    <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Producto</th>
-                    <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center tracking-widest">Opciones</th>
-                    <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right tracking-widest">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {items.map(item => (
-                    <tr key={item.id} className="hover:bg-slate-50/50 transition-all group">
-                      <td className="px-8 py-6 flex items-center gap-4">
-                        <img src={item.image_url} className="w-14 h-14 rounded-2xl object-cover bg-slate-100 shadow-sm" alt=""/>
-                        <div>
-                          <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
-                          <p className="text-orange-500 font-black text-sm mt-1">${item.price}</p>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-center">
-                        <div className="flex justify-center gap-1">
-                           <span className="text-[9px] font-black px-2 py-1 bg-slate-100 rounded-md uppercase">V: {item.variants?.length || 0}</span>
-                           <span className="text-[9px] font-black px-2 py-1 bg-slate-100 rounded-md uppercase">E: {item.extras?.length || 0}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-colors"><Pencil size={18}/></button>
-                          <button className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-colors"><Trash2 size={18}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+    {/* TABLA Y PAGINACIÓN */}
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Producto</th>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center tracking-widest">Opciones</th>
+              <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right tracking-widest">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {loading ? (
+              // SKELETON LOADING
+              [...Array(limit)].map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-8 py-6 flex items-center gap-4">
+                    <div className="w-14 h-14 bg-slate-100 rounded-2xl" />
+                    <div className="space-y-2">
+                      <div className="h-4 w-32 bg-slate-100 rounded" />
+                      <div className="h-3 w-16 bg-slate-100 rounded" />
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-center"><div className="h-4 w-20 bg-slate-50 rounded mx-auto" /></td>
+                  <td className="px-8 py-6"><div className="h-10 w-24 bg-slate-50 rounded-2xl ml-auto" /></td>
+                </tr>
+              ))
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan="3" className="py-20 text-center font-black opacity-20 uppercase italic tracking-widest">
+                  No hay productos en esta página
+                </td>
+              </tr>
+            ) : (
+              items.map(item => (
+                <tr key={item.id} className="hover:bg-slate-50/50 transition-all group">
+                  <td className="px-8 py-6 flex items-center gap-4">
+                    <img src={item.image_url} className="w-14 h-14 rounded-2xl object-cover bg-slate-100 shadow-sm border border-slate-100" alt=""/>
+                    <div>
+                      <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
+                      <p className="text-teal-500 font-black text-sm mt-1">${item.price}</p>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-center">
+                    <div className="flex justify-center gap-1">
+                       <span className="text-[9px] font-black px-2 py-1 bg-slate-100 text-slate-500 rounded-md uppercase">V: {item.variants?.length || 0}</span>
+                       <span className="text-[9px] font-black px-2 py-1 bg-slate-100 text-slate-500 rounded-md uppercase">E: {item.extras?.length || 0}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Pencil size={18}/></button>
+                      <button className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Trash2 size={18}/></button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* CONTROLES DE PAGINACIÓN */}
+      <div className="flex flex-col md:flex-row justify-between items-center px-8 py-6 bg-slate-50/50 border-t border-slate-100 gap-4">
+        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+          Página {currentPage + 1} de {Math.ceil(totalItems / limit) || 1} — Total: {totalItems} items
+        </p>
+        
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+            disabled={currentPage === 0 || loading}
+            className={`p-3 rounded-2xl border-2 transition-all ${
+              currentPage === 0 
+              ? 'border-transparent text-slate-200 cursor-not-allowed' 
+              : 'border-white bg-white text-slate-900 shadow-sm hover:border-teal-500 active:scale-90'
+            }`}
+          >
+            <ChevronLeft size={20} />
+          </button>
+
+          <div className="flex gap-1">
+            {[...Array(Math.ceil(totalItems / limit))].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i)}
+                className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all ${
+                  currentPage === i 
+                  ? 'bg-slate-900 text-white shadow-lg scale-110' 
+                  : 'bg-white border border-slate-100 text-slate-400 hover:bg-slate-100'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
           </div>
-        )}
+
+          <button 
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            disabled={(currentPage + 1) * limit >= totalItems || loading}
+            className={`p-3 rounded-2xl border-2 transition-all ${
+              (currentPage + 1) * limit >= totalItems
+              ? 'border-transparent text-slate-200 cursor-not-allowed' 
+              : 'border-white bg-white text-slate-900 shadow-sm hover:border-teal-500 active:scale-90'
+            }`}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       </div>
 
       {/* MODAL PRODUCTO COMPLETO */}

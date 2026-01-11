@@ -9,6 +9,11 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (token === 'undefined') {
+    return <Navigate to="/login" replace />;
+  }
+  
+
   return children;
 };
 

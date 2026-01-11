@@ -7,6 +7,7 @@ import PublicShop from './pages/PublicShop';
 import SuperAdmin from './pages/SuperAdmin';
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute';
+import LandingPage from './pages/landingPage/LandingPage';
 function App() {
   return (
     <Router>
@@ -21,7 +22,7 @@ function App() {
         <Route path="/shop/:slug" element={
           <PublicShop />
           } />
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/admin" element={<ProtectedRoute><SuperAdmin /></ProtectedRoute>} />
       </Routes>
     </Router>
