@@ -191,7 +191,7 @@ async def create_product(
             db.add(base.ItemExtra(item_id=new_item.id, name=e['name'], price=float(e['price'])))
     if description:
         new_item.description = description
-        else:
+    else:
         new_item.description = ""
     db.commit()
     db.refresh(new_item)
