@@ -132,20 +132,36 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
     }
 
 @router.get("/items")
-async def get_items(skip: int = 0, limit: int = 5, db: Session = Depends(get_db), current_user = Depends(get_current_tenant_id)):
-    # 1. Creamos la base de la consulta con las relaciones cargadas (Eager Loading)
+async def get_items(
+    skip: int = 0, 
+    limit: int = 5, 
+    q: str = None, # 1. Agregamos el parámetro opcional de búsqueda
+    db: Session = Depends(get_db), 
+    current_user = Depends(get_current_tenant_id)
+):
+    # 2. Base de la consulta
     query = db.query(base.Item).options(
-        joinedload(base.Item.variants), # Carga las variantes
-        joinedload(base.Item.extras)    # Carga los extras
+        joinedload(base.Item.variants),
+        joinedload(base.Item.extras)
     ).filter(base.Item.tenant_id == current_user)
     
-    # 2. Contamos el total (esto no cambia)
+    # 3. Aplicamos el filtro de búsqueda si existe "q"
+    if q:
+        search_filter = f"%{q}%" # Formato para búsqueda parcial (LIKE)
+        query = query.filter(
+            or_(
+                base.Item.name.ilike(search_filter),        # ilike no distingue entre Mayús/Minús
+                base.Item.description.ilike(search_filter)
+            )
+        )
+    
+    # 4. Contamos el total (después de filtrar)
     total = query.count()
     
-    # 3. Ejecutamos la consulta con paginación
+    # 5. Ejecutamos la consulta con orden y paginación
     items = query.order_by(base.Item.updated_at.desc()).offset(skip).limit(limit).all()
     
-    # 4. Retornamos
+    # 6. Retornamos la respuesta
     return {
         "total": total, 
         "items": items, 
