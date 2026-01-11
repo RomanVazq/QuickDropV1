@@ -114,7 +114,16 @@ const Dashboard = () => {
         setPosts(Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.items || []));
       } catch (e) { setPosts([]); }
     } catch (err) {
-      toast.error("Error al cargar datos");
+      if (err.response?.status === 403) {
+        toast.error("Acceso denegado: No eres administrador");
+        window.location.href = '/login';
+      } else if (err.response?.status === 401) {
+        toast.error("Sesión expirada, vuelve a iniciar sesión");
+        window.location.href = '/login';
+      } else {
+        toast.error("Error al cargar datos del sistema");
+        window.location.href = '/login';
+      }
     } finally { setLoading(false); }
   };
 
@@ -152,7 +161,7 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (itemId) => {
-    if (!window.confirm("¿Estás seguro de eliminar este ítem?")) return;  
+    if (!window.confirm("¿Estás seguro de eliminar este ítem?")) return;
     try {
       await api.delete(`/business/items/${itemId}`);
       toast.success("Ítem eliminado");
@@ -272,8 +281,8 @@ const Dashboard = () => {
                         onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                         disabled={currentPage === 0 || loading}
                         className={`p-3 rounded-2xl border-2 transition-all ${currentPage === 0
-                            ? 'border-transparent text-slate-200 cursor-not-allowed'
-                            : 'border-white bg-white text-slate-900 shadow-sm hover:border-teal-500 active:scale-90'
+                          ? 'border-transparent text-slate-200 cursor-not-allowed'
+                          : 'border-white bg-white text-slate-900 shadow-sm hover:border-teal-500 active:scale-90'
                           }`}
                       >
                         <ChevronLeft size={20} />
@@ -285,8 +294,8 @@ const Dashboard = () => {
                             key={i}
                             onClick={() => setCurrentPage(i)}
                             className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all ${currentPage === i
-                                ? 'bg-slate-900 text-white shadow-lg scale-110'
-                                : 'bg-white border border-slate-100 text-slate-400 hover:bg-slate-100'
+                              ? 'bg-slate-900 text-white shadow-lg scale-110'
+                              : 'bg-white border border-slate-100 text-slate-400 hover:bg-slate-100'
                               }`}
                           >
                             {i + 1}
@@ -298,8 +307,8 @@ const Dashboard = () => {
                         onClick={() => setCurrentPage(prev => prev + 1)}
                         disabled={(currentPage + 1) * limit >= totalItems || loading}
                         className={`p-3 rounded-2xl border-2 transition-all ${(currentPage + 1) * limit >= totalItems
-                            ? 'border-transparent text-slate-200 cursor-not-allowed'
-                            : 'border-white bg-white text-slate-900 shadow-sm hover:border-teal-500 active:scale-90'
+                          ? 'border-transparent text-slate-200 cursor-not-allowed'
+                          : 'border-white bg-white text-slate-900 shadow-sm hover:border-teal-500 active:scale-90'
                           }`}
                       >
                         <ChevronRight size={20} />
