@@ -11,7 +11,7 @@ const OrdersDashboard = () => {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const endpoint = filter === 'pending' 
+      const endpoint = filter === 'all' 
         ? '/orders/my-orders' 
         : `/orders/my-orders?status=${filter}`;
       
