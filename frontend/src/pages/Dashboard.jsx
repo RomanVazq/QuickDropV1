@@ -165,6 +165,17 @@ const Dashboard = () => {
     } catch (err) { toast.error("Error al eliminar"); }
   };
 
+ const handleDeletePost = async (postId) => {
+    if (!window.confirm("¿Eliminar esta publicación?")) return;
+    try {
+      await api.delete(`/social/posts/${postId}`);
+      toast.success("Publicación eliminada");
+      setPosts(posts.filter(post => post.id !== postId));
+    } catch (err) {
+      toast.error("Error al eliminar la publicación");
+    }
+  }; 
+
   return (
     <div className="min-h-screen bg-[#fcfcfd] p-4 md:p-10 font-sans text-slate-900">
       <div className="max-w-6xl mx-auto">
@@ -187,7 +198,7 @@ const Dashboard = () => {
         </div>
 
         {activeTab === 'orders' ? <OrdersDashboard /> :
-          activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDelete} /> :
+          activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> :
           activeTab === 'profile' ? <ConfigBusiness /> : (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               
