@@ -6,12 +6,12 @@ import { toast } from 'react-hot-toast';
 const OrdersDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('pending');
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const endpoint = filter === 'all' 
+      const endpoint = filter === 'pending' 
         ? '/orders/my-orders' 
         : `/orders/my-orders?status=${filter}`;
       
