@@ -251,7 +251,7 @@ const Dashboard = () => {
                               <td className="px-8 py-6 text-right">
                                 <div className="flex justify-end gap-2">
                                   <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Pencil size={18} /></button>
-                                  <button onClick={() => handleDelete(item)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Trash2 size={18} /></button>
+                                  <button onClick={() => handleDelete(item.id)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Trash2 size={18} /></button>
                                 </div>
                               </td>
                             </tr>
