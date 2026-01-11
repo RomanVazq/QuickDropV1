@@ -41,7 +41,7 @@ def register_business(data: BusinessRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="El nombre de la URL ya está en uso")
     
     # 2. Crear el Negocio (Tenant)
-    new_tenant = base.Tenant(name=data.business_name, slug=data.slug)
+    new_tenant = base.Tenant(name=data.business_name, slug=data.slug, phone=data.phone or None)
     db.add(new_tenant)
     db.flush() 
 
