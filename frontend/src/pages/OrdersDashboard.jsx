@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { Package, CheckCircle, XCircle, MapPin, User, DollarSign, Filter, FileText  } from 'lucide-react';
+import { Package, CheckCircle, XCircle, MapPin, User, DollarSign, FileText, ShoppingBasket, Layers, Tag } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const OrdersDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Estado para el filtro: 'all', 'pending', 'completed', 'cancelled'
   const [filter, setFilter] = useState('all');
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      // Construimos la URL. Si el filtro es 'all', traemos todo.
-      // Si no, enviamos el status específico al backend.
       const endpoint = filter === 'all' 
         ? '/orders/my-orders' 
         : `/orders/my-orders?status=${filter}`;
@@ -21,7 +18,6 @@ const OrdersDashboard = () => {
       const res = await api.get(endpoint);
       const data = Array.isArray(res.data) ? res.data : (res.data.items || []);
 
-      // Mantenemos el orden de prioridad por si el backend devuelve 'all' sin ordenar
       const statusPriority = { 'pending': 0, 'completed': 1, 'cancelled': 2 };
 
       const sortedOrders = [...data].sort((a, b) => {
@@ -37,7 +33,7 @@ const OrdersDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [filter]); // Se dispara cada vez que el filtro cambia
+  }, [filter]);
 
   useEffect(() => {
     fetchOrders();
@@ -45,22 +41,18 @@ const OrdersDashboard = () => {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
-const updateStatus = async (id, newStatus) => {
-  try {
-    // URL limpia + Objeto con la data
-    await api.patch(`/orders/${id}/status`, { status: newStatus });
-    
-    toast.success(`Estado actualizado: ${newStatus}`);
-    fetchOrders(); 
-  } catch (err) {
-    console.error("Detalle del error:", err.response?.data);
-    toast.error("Error al actualizar");
-  }
-};
+  const updateStatus = async (id, newStatus) => {
+    try {
+      await api.patch(`/orders/${id}/status`, { status: newStatus });
+      toast.success(`Estado actualizado: ${newStatus}`);
+      fetchOrders(); 
+    } catch (err) {
+      toast.error("Error al actualizar");
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto animate-in fade-in duration-500">
-      {/* HEADER Y FILTROS */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div>
           <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">
@@ -71,7 +63,6 @@ const updateStatus = async (id, newStatus) => {
           </p>
         </div>
 
-        {/* SELECTOR DE FILTROS ESTILO CHIPS */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2">
           {[
             { id: 'all', label: 'Todos', color: 'bg-slate-900' },
@@ -94,7 +85,6 @@ const updateStatus = async (id, newStatus) => {
         </div>
       </div>
 
-      {/* GRILLA DE PEDIDOS */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
@@ -106,10 +96,11 @@ const updateStatus = async (id, newStatus) => {
           {orders.map(order => (
             <div 
               key={order.id} 
-              className={`bg-white border-2 rounded-[32px] p-6 shadow-sm border-t-8 transition-all ${
+              className={`bg-white border-2 rounded-[32px] p-6 shadow-sm border-t-8 transition-all flex flex-col ${
                 order.status === 'pending' ? 'border-orange-500 ring-4 ring-orange-500/5' : 'border-slate-100 border-t-slate-900'
               }`}
             >
+              {/* HEADER TICKET */}
               <div className="flex justify-between items-start mb-4">
                 <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${
                   order.status === 'completed' ? 'bg-green-50 text-green-600 border-green-100' :
@@ -123,56 +114,87 @@ const updateStatus = async (id, newStatus) => {
                 </span>
               </div>
 
-              <div className="space-y-4 mb-6">
+              {/* DETALLES CLIENTE */}
+              <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><User size={18}/></div>
+                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><User size={16}/></div>
                   <div className="overflow-hidden">
                     <p className="text-[10px] uppercase font-black text-slate-400">Cliente</p>
-                    <p className="font-bold truncate">{order.customer_name}</p>
+                    <p className="font-bold text-sm truncate">{order.customer_name}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><MapPin size={18}/></div>
+                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><MapPin size={16}/></div>
                   <div className="overflow-hidden">
                     <p className="text-[10px] uppercase font-black text-slate-400">Dirección</p>
-                    <p className="text-sm text-slate-600 truncate">{order.address}</p>
-                  </div>
-                </div>
-
-              <div className="flex items-start gap-3">
-                <div className="bg-slate-50 p-2 rounded-xl text-slate-900 shrink-0"> 
-                  <FileText size={18}/>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase font-black text-slate-400">Notas</p>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap break-words">
-                    {order.notes || "Sin notas adicionales"}
-                  </p>
-                </div>
-              </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="bg-orange-50 p-2 rounded-xl text-orange-600"><DollarSign size={18}/></div>
-                  <div>
-                    <p className="text-[10px] uppercase font-black text-slate-400">Total</p>
-                    <p className="text-xl font-black text-slate-900">${order.total_amount?.toFixed(2)}</p>
+                    <p className="text-xs text-slate-600 truncate">{order.address}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4 border-t border-dashed border-slate-100">
+              {/* PRODUCTOS (NUEVA SECCIÓN) */}
+              <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <ShoppingBasket size={14} className="text-slate-400" />
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Productos</p>
+                </div>
+                <div className="space-y-3">
+                  {order.order_items?.map((item, idx) => (
+                    <div key={idx} className="border-b border-slate-200/50 last:border-0 pb-2 last:pb-0">
+                      <div className="flex justify-between items-start">
+                        <p className="text-xs font-bold text-slate-800 uppercase leading-tight">
+                          <span className="text-orange-500 font-black">{item.quantity}x</span> {item.item_name || 'Producto'}
+                        </p>
+                      </div>
+                      
+                      {/* Mostrar Variante y Extras si existen */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.variant_name && (
+                          <span className="flex items-center gap-1 text-[8px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded uppercase">
+                            <Layers size={8}/> {item.variant_name}
+                          </span>
+                        )}
+                        {item.extras_summary && (
+                          <span className="flex items-center gap-1 text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase">
+                            <Tag size={8}/> {item.extras_summary}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* NOTAS Y TOTAL */}
+              <div className="mt-auto space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-slate-50 p-2 rounded-xl text-slate-900 shrink-0"><FileText size={16}/></div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase font-black text-slate-400">Notas</p>
+                    <p className="text-xs text-slate-600 italic">"{order.notes || "Sin notas adicionales"}"</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl">
+                  <p className="text-[10px] uppercase font-black opacity-60">Cobrar:</p>
+                  <p className="text-xl font-black">${order.total_amount?.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* ACCIONES */}
+              <div className="flex gap-2 pt-4 mt-4 border-t border-dashed border-slate-100">
                 {order.status === 'pending' ? (
                   <>
                     <button 
                       onClick={() => updateStatus(order.id, 'completed')}
-                      className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600 active:scale-95 transition-all shadow-lg shadow-green-100"
+                      className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-100"
                     >
-                      <CheckCircle size={16}/> Completar
+                      <CheckCircle size={16}/> Listar
                     </button>
                     <button 
                       onClick={() => updateStatus(order.id, 'cancelled')}
-                      className="bg-slate-100 text-slate-400 p-3 rounded-2xl hover:text-red-500 active:scale-95 transition-colors"
+                      className="bg-slate-100 text-slate-400 p-3 rounded-2xl hover:text-red-500 transition-colors"
                     >
                       <XCircle size={20}/>
                     </button>
@@ -182,7 +204,7 @@ const updateStatus = async (id, newStatus) => {
                     onClick={() => updateStatus(order.id, 'pending')}
                     className="w-full bg-slate-50 text-slate-400 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-slate-100 transition-all border border-slate-100"
                   >
-                    Reabrir Ticket
+                    Mover a Pendientes
                   </button>
                 )}
               </div>

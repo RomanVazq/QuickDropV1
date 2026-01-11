@@ -1,9 +1,11 @@
-from sqlalchemy import Column, String, Float, ForeignKey, DateTime, Text, Boolean
+from sqlalchemy import Column, String, Float, ForeignKey, DateTime, Text, Boolean, Integer
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import uuid
 
 Base = declarative_base()
+
+# --- NÚCLEO DEL SISTEMA (Multi-tenant) ---
 
 class Tenant(Base):
     __tablename__ = "tenants"
@@ -16,7 +18,7 @@ class Tenant(Base):
     secundary_color = Column(String, default="#000000")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relaciones vinculadas correctamente para evitar errores de Mapper
+    # Relaciones
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
     items = relationship("Item", back_populates="tenant", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="tenant", cascade="all, delete-orphan")
@@ -30,21 +32,47 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     phone = Column(String, nullable=True)
+    
     tenant = relationship("Tenant", back_populates="users")
+
+# --- PRODUCTOS, VARIANTES Y EXTRAS ---
 
 class Item(Base):
     __tablename__ = "items"
     id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
+    price = Column(Float, nullable=False)  # Precio base o inicial
     image_url = Column(String, nullable=True)
     is_service = Column(Boolean, default=False) 
     stock = Column(Float, default=0.0)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
     tenant = relationship("Tenant", back_populates="items")
+    variants = relationship("ItemVariant", back_populates="item", cascade="all, delete-orphan")
+    extras = relationship("ItemExtra", back_populates="item", cascade="all, delete-orphan")
+
+class ItemVariant(Base):
+    __tablename__ = "item_variants"
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    item_id = Column(String, ForeignKey("items.id"), nullable=False)
+    name = Column(String, nullable=False)
+    price = Column(Float, nullable=False)
+    
+    item = relationship("Item", back_populates="variants")
+
+class ItemExtra(Base):
+    __tablename__ = "item_extras"
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    item_id = Column(String, ForeignKey("items.id"), nullable=False)
+    name = Column(String, nullable=False)
+    price = Column(Float, default=0.0)
+    
+    item = relationship("Item", back_populates="extras")
+
+# --- PEDIDOS Y FACTURACIÓN ---
 
 class Order(Base):
     __tablename__ = "orders"
@@ -59,6 +87,26 @@ class Order(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tenant = relationship("Tenant", back_populates="orders")
+    order_items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+class OrderItem(Base):
+    """Detalle de cada producto dentro de una orden"""
+    __tablename__ = "order_items"
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    order_id = Column(String, ForeignKey("orders.id"), nullable=False)
+    item_id = Column(String, ForeignKey("items.id"), nullable=True)
+    
+    item_name = Column(String, nullable=False) 
+    variant_name = Column(String, nullable=True) 
+    extras_summary = Column(Text, nullable=True) # Ej: "Extra Queso, Sin Cebolla"
+    quantity = Column(Integer, default=1)
+    unit_price = Column(Float, nullable=False) # Precio de la variante elegida
+    extras_total_price = Column(Float, default=0.0) # Suma de todos los extras
+    total_line_price = Column(Float, nullable=False) # (unit_price + extras_total_price) * quantity
+
+    order = relationship("Order", back_populates="order_items")
+
+# --- RED SOCIAL Y FIDELIZACIÓN ---
 
 class Post(Base):
     __tablename__ = "posts"
@@ -79,10 +127,14 @@ class Like(Base):
     
     post = relationship("Post", back_populates="likes")
 
+# --- SISTEMA DE CRÉDITOS (SaaS Monetization) ---
+
 class Wallet(Base):
     __tablename__ = "wallets"
     id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, ForeignKey("tenants.id"), unique=True, nullable=False)
     balance = Column(Float, default=0.0)
+    plan_type = Column(String, default="PAY_AS_YOU_GO") # "SUBSCRIPTION" para los aclientados
+    subscription_end = Column(DateTime, nullable=True)
     
     tenant = relationship("Tenant", back_populates="wallet")

@@ -1,9 +1,10 @@
 import os
 import uuid
+import json
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from jose import jwt
 from supabase import create_client, Client
@@ -16,8 +17,8 @@ from app.core.security import SECRET_KEY, ALGORITHM
 router = APIRouter()
 
 # --- CONFIGURACIÓN SUPABASE ---
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL") or "https://vetqpetunrnscqizstix.supabase.co"
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") or "sb_publishable_EO8bJaRdWDQoBlr1fpZ6Xg_l0CKiq67"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- SEGURIDAD ---
@@ -38,19 +39,15 @@ def get_public_business_data(
     slug: str, 
     skip: int = 0, 
     limit: int = 5, 
-    search: Optional[str] = None, # Parámetro de búsqueda añadido
+    search: Optional[str] = None, 
     db: Session = Depends(get_db)
 ):
     tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="El negocio no existe")
 
-    # Base de la consulta de items
-    query = db.query(base.Item).filter(
-        base.Item.tenant_id == tenant.id,
-    )
+    query = db.query(base.Item).filter(base.Item.tenant_id == tenant.id)
 
-    # Lógica de Filtro de Búsqueda
     if search:
         query = query.filter(
             or_(
@@ -62,10 +59,23 @@ def get_public_business_data(
     total_items = query.count()
     items = query.offset(skip).limit(limit).all()
 
-    posts = db.query(base.Post)\
-              .filter(base.Post.tenant_id == tenant.id)\
-              .order_by(base.Post.created_at.desc())\
-              .limit(10).all()
+    # Formatear items para incluir sus relaciones anidadas
+    formatted_items = []
+    for item in items:
+        formatted_items.append({
+            "id": item.id,
+            "name": item.name,
+            "price": item.price,
+            "description": item.description,
+            "image_url": item.image_url,
+            "is_service": item.is_service,
+            "stock": item.stock,
+            "variants": [{"id": v.id, "name": v.name, "price": v.price} for v in item.variants],
+            "extras": [{"id": e.id, "name": e.name, "price": e.price} for e in item.extras]
+        })
+
+    posts = db.query(base.Post).filter(base.Post.tenant_id == tenant.id)\
+              .order_by(base.Post.created_at.desc()).limit(10).all()
 
     return {
         "business": {
@@ -77,7 +87,7 @@ def get_public_business_data(
             "secundary_color": tenant.secundary_color,
             "logo_url": tenant.logo_url
         },
-        "items": items,
+        "items": formatted_items,
         "total_items": total_items,
         "posts": posts
     }
@@ -123,11 +133,25 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
 
 @router.get("/items")
 async def get_items(skip: int = 0, limit: int = 5, db: Session = Depends(get_db), current_user = Depends(get_current_tenant_id)):
-    query = db.query(base.Item).filter(base.Item.tenant_id == current_user)
+    # 1. Creamos la base de la consulta con las relaciones cargadas (Eager Loading)
+    query = db.query(base.Item).options(
+        joinedload(base.Item.variants), # Carga las variantes
+        joinedload(base.Item.extras)    # Carga los extras
+    ).filter(base.Item.tenant_id == current_user)
+    
+    # 2. Contamos el total (esto no cambia)
     total = query.count()
+    
+    # 3. Ejecutamos la consulta con paginación
     items = query.order_by(base.Item.updated_at.desc()).offset(skip).limit(limit).all()
     
-    return {"total": total, "items": items, "skip": skip, "limit": limit}
+    # 4. Retornamos
+    return {
+        "total": total, 
+        "items": items, 
+        "skip": skip, 
+        "limit": limit
+    }
 
 @router.post("/items")
 async def create_product(
@@ -137,14 +161,15 @@ async def create_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+    variants: Optional[str] = Form(None), # Nuevo: Recibe JSON string
+    extras: Optional[str] = Form(None),   # Nuevo: Recibe JSON string
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
     image_url = None
     if image:
         file_content = await image.read()
-        file_ext = image.filename.split(".")[-1]
-        file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}.{file_ext}"
+        file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}.{image.filename.split('.')[-1]}"
         supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"content-type": image.content_type})
         image_url = supabase.storage.from_("images").get_public_url(file_path)
 
@@ -153,6 +178,18 @@ async def create_product(
         image_url=image_url, stock=stock, description=description, created_at=datetime.utcnow()
     )
     db.add(new_item)
+    db.flush() # Para obtener el ID antes de insertar variantes/extras
+
+    if variants:
+        v_list = json.loads(variants)
+        for v in v_list:
+            db.add(base.ItemVariant(item_id=new_item.id, name=v['name'], price=float(v['price'])))
+
+    if extras:
+        e_list = json.loads(extras)
+        for e in e_list:
+            db.add(base.ItemExtra(item_id=new_item.id, name=e['name'], price=float(e['price'])))
+
     db.commit()
     db.refresh(new_item)
     return new_item
@@ -166,6 +203,8 @@ async def update_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+    variants: Optional[str] = Form(None), # Nuevo
+    extras: Optional[str] = Form(None),   # Nuevo
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
@@ -182,6 +221,21 @@ async def update_product(
     item.name, item.price, item.is_service, item.stock = name, price, is_service, stock
     item.description = description or ""
     item.updated_at = datetime.utcnow()
+
+    # Actualizar Variantes (Borrar y re-crear es lo más eficiente)
+    if variants is not None:
+        db.query(base.ItemVariant).filter(base.ItemVariant.item_id == item.id).delete()
+        v_list = json.loads(variants)
+        for v in v_list:
+            db.add(base.ItemVariant(item_id=item.id, name=v['name'], price=float(v['price'])))
+
+    # Actualizar Extras
+    if extras is not None:
+        db.query(base.ItemExtra).filter(base.ItemExtra.item_id == item.id).delete()
+        e_list = json.loads(extras)
+        for e in e_list:
+            db.add(base.ItemExtra(item_id=item.id, name=e['name'], price=float(e['price'])))
+
     db.commit()
     return item
 

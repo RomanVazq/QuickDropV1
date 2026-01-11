@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Minus, Plus, MessageSquare, Loader2, Calendar } from 'lucide-react';
+import { Minus, Plus, MessageSquare, Loader2, Calendar, Tag, Layers } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -13,7 +13,7 @@ const PublicCart = ({
   cartTotal, 
   hasService, 
   business,
-  setCart // Prop necesaria para limpiar el estado al finalizar
+  setCart 
 }) => {
   const { slug } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,44 +25,43 @@ const PublicCart = ({
     setIsSubmitting(true);
 
     try {
-      // 1. ESTRUCTURA DEL PEDIDO
+      // 1. ESTRUCTURA DEL PEDIDO ACTUALIZADA
       const payload = {
         customer_name: formData.customer_name,
         address: hasService ? "SERVICIO EN LOCAL" : formData.address,
         appointment_datetime: formData.appointment_datetime || null,
         notes: formData.notes || "",
         items: cartArray.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity
+          product_id: item.originalId || item.id, // Usamos el ID original para la DB
+          quantity: item.quantity,
+          // Enviamos los detalles de personalización para que el backend los guarde en la orden
+          variant_name: item.selectedVariant?.name || null,
+          extras_names: item.selectedExtras?.map(e => e.name).join(", ") || null
         }))
       };
 
-      // 2. REGISTRO EN BASE DE DATOS
       const response = await api.post(`/orders/public/place-order/${slug}`, payload);
       const { order_id, resumen, business_phone, appointment } = response.data;
 
-      // 3. LIMPIEZA DE PERSISTENCIA (Crucial para evitar duplicados)
       localStorage.removeItem(`cart_${slug}`);
       localStorage.removeItem(`items_cache_${slug}`);
       if (setCart) setCart({}); 
 
-      // 4. CONSTRUCCIÓN DEL MENSAJE PARA WHATSAPP
+      // 4. MENSAJE PARA WHATSAPP (Incluyendo Variantes y Extras)
       const text = `*ORDEN: #${order_id.substring(0, 8).toUpperCase()}*\n` +
                    `--------------------------\n` +
                    `👤 *Cliente:* ${formData.customer_name}\n` +
                    `🛍️ *Detalle:* \n${resumen}\n\n` +
-                   `💰 *TOTAL: $${cartTotal}*\n` +
+                   `💰 *TOTAL: $${cartTotal.toFixed(2)}*\n` +
                    `--------------------------\n` +
                    `${hasService ? `📅 *CITA:* ${appointment}` : `📍 *ENTREGA:* ${formData.address}`}\n` +
                    `📝 *NOTAS:* ${formData.notes || 'Sin notas extra'}\n\n` +
                    `✅ _Pedido enviado desde el catálogo digital_`;
 
-      // 5. REDIRECCIÓN
       toast.success("¡Pedido registrado con éxito!");
       
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${business_phone}&text=${encodeURIComponent(text)}`;
       
-      // Pequeño delay para que el usuario procese el éxito antes de salir de la app
       setTimeout(() => {
         window.location.href = whatsappUrl;
       }, 800);
@@ -70,7 +69,7 @@ const PublicCart = ({
     } catch (err) {
       console.error(err);
       if (err.response?.status === 403) {
-        toast.error("Lo sentimos, el negocio no tiene créditos para recibir pedidos.");
+        toast.error("Lo sentimos, el negocio no tiene créditos.");
       } else {
         toast.error(err.response?.data?.detail || "Error al procesar la orden");
       }
@@ -92,54 +91,65 @@ const PublicCart = ({
         <h2 className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">Finalizar</h2>
       </div>
 
-      {/* LISTA DE PRODUCTOS EN EL CARRITO */}
       <div className="space-y-3 mb-8">
         {cartArray.map(item => {
           const yaAlcanzoLimite = item.quantity >= item.stock;
 
           return (
-            <div key={item.id} className="flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
-              <img src={item.image_url} className="w-16 h-16 rounded-xl object-cover bg-white" alt={item.name} />
-              <div className="flex-1">
-                <h4 className="font-bold text-sm text-slate-800 uppercase leading-tight line-clamp-1">{item.name}</h4>
-                <p className="text-orange-600 font-black">${item.price * item.quantity}</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                  {item.is_service ? "Servicio" : `En stock: ${item.stock}`}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-                <button 
-                  type="button"
-                  onClick={() => updateQuantity(item.id, -1)} 
-                  disabled={isSubmitting} 
-                  className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                >
-                  <Minus size={12}/>
-                </button>
+            <div key={item.cartKey || item.id} className="flex flex-col gap-2 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+              <div className="flex items-center gap-4">
+                <img src={item.image_url} className="w-16 h-16 rounded-xl object-cover bg-white shadow-sm" alt={item.name} />
+                <div className="flex-1">
+                  <h4 className="font-bold text-sm text-slate-800 uppercase leading-tight line-clamp-1">{item.name}</h4>
+                  
+                  {/* VISUALIZACIÓN DE VARIANTES Y EXTRAS */}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {item.selectedVariant && (
+                      <span className="flex items-center gap-1 text-[8px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-md uppercase">
+                        <Layers size={8}/> {item.selectedVariant.name}
+                      </span>
+                    )}
+                    {item.selectedExtras?.map(extra => (
+                      <span key={extra.id} className="flex items-center gap-1 text-[8px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded-md uppercase">
+                        <Tag size={8}/> {extra.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="text-orange-600 font-black mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+                </div>
                 
-                <span className="font-black text-xs min-w-[16px] text-center">{item.quantity}</span>
-                
-                <button 
-                  type="button"
-                  onClick={() => updateQuantity(item.id, 1)} 
-                  disabled={isSubmitting || yaAlcanzoLimite} 
-                  className={`p-2 transition-colors ${
-                    yaAlcanzoLimite ? 'text-slate-200' : 'text-slate-900 hover:text-orange-500'
-                  }`}
-                >
-                  <Plus size={12}/>
-                </button>
+                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                  <button 
+                    type="button"
+                    onClick={() => updateQuantity(item.cartKey || item.id, -1)} 
+                    disabled={isSubmitting} 
+                    className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <Minus size={12}/>
+                  </button>
+                  <span className="font-black text-xs min-w-[16px] text-center">{item.quantity}</span>
+                  <button 
+                    type="button"
+                    onClick={() => updateQuantity(item.cartKey || item.id, 1)} 
+                    disabled={isSubmitting || yaAlcanzoLimite || item.isCustom} // Desactivado si es custom para evitar líos de precio
+                    className={`p-2 transition-colors ${
+                      yaAlcanzoLimite || item.isCustom ? 'text-slate-200' : 'text-slate-900 hover:text-orange-500'
+                    }`}
+                  >
+                    <Plus size={12}/>
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* FORMULARIO DE CLIENTE */}
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* ... (Resto del formulario igual al original) ... */}
         <div className="space-y-1">
-          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Tú Nombre:</label>
+          <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Tu Nombre:</label>
           <input 
             required 
             placeholder="Nombre completo"
@@ -198,18 +208,12 @@ const PublicCart = ({
           <button 
             type="submit" 
             disabled={isSubmitting || cartArray.length === 0}
-            className="w-full bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:bg-slate-300 disabled:shadow-none"
+            className="w-full bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-widest shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:bg-slate-300"
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" size={20} />
-                <span>Procesando...</span>
-              </>
+              <><Loader2 className="animate-spin" size={20} /><span>Procesando...</span></>
             ) : (
-              <>
-                <MessageSquare size={18} className="text-orange-500" />
-                <span>Confirmar por WhatsApp</span>
-              </>
+              <><MessageSquare size={18} className="text-orange-500" /><span>Confirmar por WhatsApp</span></>
             )}
           </button>
         </div>

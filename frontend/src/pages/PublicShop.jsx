@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
 import { ShoppingBag, Search, X } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Header } from '../components/Header';
 import PublicCatalog from '../components/PublicCatalog';
 import PublicCart from '../components/PublicCart';
 import ServiceModal from '../components/ServiceModal';
+import ItemOptionsModal from '../components/ItemOptionsModal';
 
 const PublicShop = () => {
   const { slug } = useParams();
@@ -25,11 +26,12 @@ const PublicShop = () => {
   const [activeTab, setActiveTab] = useState('menu');
   const [step, setStep] = useState(1);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
+  const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   // BÚSQUEDA
-  const [searchQuery, setSearchQuery] = useState(''); // Lo que se manda a la API
-  const [inputValue, setInputValue] = useState('');   // Lo que el usuario escribe (instantáneo)
+  const [searchQuery, setSearchQuery] = useState(''); 
+  const [inputValue, setInputValue] = useState('');   
 
   // --- ESTADOS DE CARRITO Y FORMULARIO ---
   const [cart, setCart] = useState({});
@@ -59,19 +61,18 @@ const PublicShop = () => {
   }, [cart, allItems, slug]);
 
   // ==========================================
-  // 2. LÓGICA DE DEBOUNCE PARA BÚSQUEDA
+  // 2. LÓGICA DE BÚSQUEDA (Debounce)
   // ==========================================
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchQuery(inputValue);
-      setCurrentPage(0); // Reiniciar paginación al buscar
-    }, 500); // Espera 500ms
-
+      setCurrentPage(0);
+    }, 500);
     return () => clearTimeout(timer);
   }, [inputValue]);
 
   // ==========================================
-  // 3. CARGA DE DATOS DESDE API
+  // 3. CARGA DE DATOS
   // ==========================================
   useEffect(() => {
     const fetchShop = async () => {
@@ -89,7 +90,10 @@ const PublicShop = () => {
         setAllItems(prev => {
           const updated = { ...prev };
           newItems.forEach(item => {
-            updated[item.id] = item;
+            // No sobreescribir items "personalizados" del carrito (keys compuestas)
+            if (!updated[item.id] || !updated[item.id].isCustom) {
+                updated[item.id] = item;
+            }
           });
           return updated;
         });
@@ -114,18 +118,30 @@ const PublicShop = () => {
     };
 
     fetchShop();
-  }, [slug, currentPage, searchQuery]); // Se dispara al cambiar página o búsqueda
+  }, [slug, currentPage, searchQuery]);
 
   // ==========================================
-  // 4. GESTIÓN DE CARRITO
+  // 4. GESTIÓN DE CARRITO Y OPCIONES
   // ==========================================
-  const cartArray = Object.keys(cart).map(id => ({
-    ...(allItems[id] || {}),
-    quantity: cart[id]
+  
+  // Transformar objeto cart en array con detalles
+  const cartArray = Object.keys(cart).map(cartKey => ({
+    ...allItems[cartKey],
+    cartKey: cartKey,
+    quantity: cart[cartKey]
   })).filter(item => item.id);
 
   const updateQuantity = (id, delta) => {
     const item = allItems[id];
+    
+    // Si es una adición y tiene opciones, abrir modal
+    if (delta > 0 && (item?.variants?.length > 0 || item?.extras?.length > 0)) {
+      setSelectedItem(item);
+      setIsOptionsModalOpen(true);
+      return;
+    }
+
+    // Lógica para Servicios
     if (item?.is_service && delta > 0) {
       const hasExistingService = cartArray.some(cartItem => cartItem.is_service);
       if (hasExistingService && !cart[id]) {
@@ -133,13 +149,14 @@ const PublicShop = () => {
         return;
       }
       if (!cart[id]) {
-        setSelectedService(item);
+        setSelectedItem(item);
         setIsServiceModalOpen(true);
         return;
       }
       if (cart[id] >= 1) return;
     }
 
+    // Lógica estándar
     setCart(prev => {
       const currentQty = prev[id] || 0;
       const newQty = currentQty + delta;
@@ -149,6 +166,29 @@ const PublicShop = () => {
       }
       return { ...prev, [id]: newQty };
     });
+  };
+
+  const confirmAddition = (customItem) => {
+    // Generar llave única: ID-VarianteID-ExtrasIDs
+    const variantPart = customItem.selectedVariant?.id || 'base';
+    const extrasPart = customItem.selectedExtras.map(e => e.id).sort().join('-');
+    const cartKey = `${customItem.id}-${variantPart}-${extrasPart}`;
+
+    setAllItems(prev => ({
+      ...prev,
+      [cartKey]: { 
+        ...customItem, 
+        isCustom: true, 
+        price: customItem.totalPrice // Precio unitario con extras
+      }
+    }));
+
+    setCart(prev => ({
+      ...prev,
+      [cartKey]: (prev[cartKey] || 0) + customItem.cartQuantity
+    }));
+
+    toast.success("Agregado con éxito");
   };
 
   const confirmService = (id, date) => {
@@ -175,10 +215,9 @@ const PublicShop = () => {
   const cartTotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const hasService = cartArray.some(item => item.is_service);
 
-
   return (
     <div className="min-h-screen bg-white pb-20 font-sans">
-
+      
       {/* BOTÓN FLOTANTE CARRITO */}
       {cartTotal > 0 && step === 1 && (
         <button
@@ -187,7 +226,7 @@ const PublicShop = () => {
         >
           <ShoppingBag size={18} className="text-orange-500" />
           <div className="text-left">
-            <p className="text-[10px] font-black uppercase opacity-60">Checkout</p>
+            <p className="text-[10px] font-black uppercase opacity-60">Ver Carrito</p>
             <p className="text-lg font-black">${cartTotal}</p>
           </div>
         </button>
@@ -206,7 +245,6 @@ const PublicShop = () => {
             </button>
           </div>
 
-          {/* BARRA DE BÚSQUEDA DINÁMICA */}
           {activeTab === 'menu' && (
             <div className="px-4 py-3 bg-white animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="relative group">
@@ -219,10 +257,7 @@ const PublicShop = () => {
                   className="w-full bg-slate-100 border-none rounded-2xl py-3 pl-10 pr-10 text-sm font-medium focus:ring-2 focus:ring-slate-900/5 focus:bg-slate-50 transition-all outline-none"
                 />
                 {inputValue && (
-                  <button
-                    onClick={() => setInputValue('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-slate-200 rounded-full text-slate-500 hover:text-slate-900"
-                  >
+                  <button onClick={() => setInputValue('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-slate-200 rounded-full text-slate-500 hover:text-slate-900">
                     <X size={12} />
                   </button>
                 )}
@@ -264,11 +299,19 @@ const PublicShop = () => {
         )}
       </div>
 
+      {/* MODALES */}
       <ServiceModal
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
-        item={selectedService}
+        item={selectedItem}
         onConfirm={confirmService}
+      />
+
+      <ItemOptionsModal
+        isOpen={isOptionsModalOpen}
+        onClose={() => setIsOptionsModalOpen(false)}
+        item={selectedItem}
+        onConfirm={confirmAddition}
       />
     </div>
   );
