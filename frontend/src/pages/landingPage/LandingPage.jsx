@@ -36,7 +36,7 @@ const LandingPage = () => {
       {/* HERO SECTION */}
       <header className="relative px-6 pt-20 pb-32 max-w-7xl mx-auto text-center">
           <span className="inline-block bg-teal-50 text-teal-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-teal-100">
-            SaaS para Comercio Local, ¡Ya!
+           ¡ MENÚ DIGITAL PROFESIONAL ÚNETE YA !
           </span>
           <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter uppercase italic mb-8 text-slate-900">
             Vende por <span className="text-teal-500 drop-shadow-sm">WhatsApp</span> <br />
