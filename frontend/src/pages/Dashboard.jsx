@@ -321,6 +321,7 @@ const Dashboard = () => {
       </div>
 
       {/* MODAL PRODUCTO COMPLETO */}
+      {/* MODAL PRODUCTO COMPLETO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-[3rem] p-8 max-w-xl w-full my-auto shadow-2xl animate-in zoom-in-95">
@@ -356,25 +357,47 @@ const Dashboard = () => {
                   />
                 </div>
 
-                {/* Precio y Switch de Servicio */}
-                <div className="space-y-2">
+                {/* Precio Base */}
+                <div className="space-y-1">
                   <p className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Precio Base</p>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">$</span>
-                    <input type="number" className="w-full p-4 pl-8 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} required />
+                    <input
+                      type="number"
+                      className="w-full p-4 pl-8 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900 transition-all"
+                      value={newProduct.price}
+                      onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
+                      required
+                    />
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-end">
-                  <label className="relative inline-flex items-center cursor-pointer bg-slate-50 p-4 rounded-2xl border-2 border-transparent hover:border-slate-100 transition-all">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={newProduct.is_service}
-                      onChange={e => setNewProduct({ ...newProduct, is_service: e.target.checked })}
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[22px] after:left-[20px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
-                    <span className="ml-3 text-[10px] font-black uppercase text-slate-500 tracking-tighter">¿Es Servicio?</span>
+                {/* Stock (Se deshabilita si es servicio) */}
+                <div className={`space-y-1 transition-opacity ${newProduct.is_service ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                  <p className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Stock Disponible</p>
+                  <input
+                    type="number"
+                    placeholder={newProduct.is_service ? "∞" : "0"}
+                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900 transition-all"
+                    value={newProduct.is_service ? '' : newProduct.stock}
+                    onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })}
+                    disabled={newProduct.is_service}
+                  />
+                </div>
+
+                {/* Switch de Servicio (Ocupa las 2 columnas) */}
+                <div className="col-span-2">
+                  <label className="relative flex items-center justify-between cursor-pointer bg-slate-50 p-4 rounded-2xl border-2 border-transparent hover:border-slate-100 transition-all">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">¿Este item es un servicio?</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={newProduct.is_service}
+                        onChange={e => setNewProduct({ ...newProduct, is_service: e.target.checked })}
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                    </div>
                   </label>
                 </div>
               </div>
