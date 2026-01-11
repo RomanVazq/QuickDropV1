@@ -151,6 +151,16 @@ const Dashboard = () => {
     setIsModalOpen(true);
   };
 
+  const handleDelete = async (itemId) => {
+    if (!window.confirm("¿Estás seguro de eliminar este ítem?")) return;  
+    try {
+      await api.delete(`/business/items/${itemId}`);
+      toast.success("Ítem eliminado");
+      fetchData();
+    } catch (err) {
+      toast.error("Error al eliminar ítem");
+    }
+  };
   return (
     <div className="min-h-screen bg-[#fcfcfd] p-4 md:p-10 font-sans text-slate-900">
       <div className="max-w-6xl mx-auto">
@@ -241,7 +251,7 @@ const Dashboard = () => {
                               <td className="px-8 py-6 text-right">
                                 <div className="flex justify-end gap-2">
                                   <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Pencil size={18} /></button>
-                                  <button className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Trash2 size={18} /></button>
+                                  <button onClick={() => handleDelete(item)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all hover:scale-110"><Trash2 size={18} /></button>
                                 </div>
                               </td>
                             </tr>
