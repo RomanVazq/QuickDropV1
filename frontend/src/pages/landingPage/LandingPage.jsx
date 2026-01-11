@@ -102,7 +102,7 @@ const LandingPage = () => {
               <div className="absolute top-6 right-6 text-teal-500">
                 <Rocket size={32} />
               </div>
-              <h3 className="text-3xl font-black uppercase italic mb-2">Establecido</h3>
+              <h3 className="text-3xl font-black uppercase italic mb-2">PREMIUM</h3>
               <p className="text-teal-600 font-bold text-xs mb-6 uppercase tracking-widest">Negocios con flujo</p>
               
               <div className="mb-8 text-slate-900">
