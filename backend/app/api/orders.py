@@ -129,6 +129,19 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
     
     wallet.balance -= 1 # Descontar crédito
 
+    history = base.WalletTransaction(
+    tenant_id=tenant.id,
+    amount=-1,
+    previous_balance=int(wallet.balance + 1),
+    new_balance=int(wallet.balance),
+    reason=f"Pedido generado: {order_id[:6]} CLIENTE: {order_data.customer_name} NEGOCIO: {tenant.name}"
+)
+    db.add(history)
+
+
+    if wallet.balance <= 0:
+        tenant.is_active = False
+
     try:
         db.add(new_order)
         db.add_all(db_items) # Agregamos todos los items del pedido

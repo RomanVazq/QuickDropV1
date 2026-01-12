@@ -34,6 +34,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
     return user
+
+def get_super_user(current_user = Depends(get_current_user)):
+    """
+    Esta función depende de get_current_user. 
+    Si el usuario no tiene la bandera is_superuser, frena la petición aquí.
+    """
+    if not getattr(current_user, "is_superuser", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Acceso denegado: Se requiere ser SuperUser"
+        )
+    return current_user
+
 @router.post("/register")
 def register_business(data: BusinessRegister, db: Session = Depends(get_db)):
     # 1. Verificar si el slug o email ya existen (Usamos data.slug y data.email)
@@ -67,4 +80,4 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
     access_token = security.create_access_token(data={"sub": user.email, "tenant_id": user.tenant_id})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "is_superuser": user.is_superuser}

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Float, ForeignKey, DateTime, Text, Boolean, Integer
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
+from sqlalchemy.sql import func
 import uuid
 
 Base = declarative_base()
@@ -16,6 +17,7 @@ class Tenant(Base):
     logo_url = Column(String, nullable=True)
     primary_color = Column(String, default="#ffffff")
     secundary_color = Column(String, default="#000000")
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones
@@ -24,6 +26,7 @@ class Tenant(Base):
     orders = relationship("Order", back_populates="tenant", cascade="all, delete-orphan")
     wallet = relationship("Wallet", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
     posts = relationship("Post", back_populates="tenant", cascade="all, delete-orphan")
+    wallet_transactions = relationship("WalletTransaction", back_populates="tenant")
 
 class User(Base):
     __tablename__ = "users"
@@ -32,7 +35,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     phone = Column(String, nullable=True)
-    
+    is_superuser = Column(Boolean, default=False)
     tenant = relationship("Tenant", back_populates="users")
 
 # --- PRODUCTOS, VARIANTES Y EXTRAS ---
@@ -138,3 +141,17 @@ class Wallet(Base):
     subscription_end = Column(DateTime, nullable=True)
     
     tenant = relationship("Tenant", back_populates="wallet")
+
+class WalletTransaction(Base):
+    __tablename__ = "wallet_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(String, ForeignKey("tenants.id"))
+    amount = Column(Integer)  # Puede ser positivo (+10) o negativo (-1)
+    previous_balance = Column(Integer)
+    new_balance = Column(Integer)
+    reason = Column(String)  # Ej: "Recarga mensual", "Pedido #123", "Corrección"
+    created_at = Column(DateTime, default=func.now())
+
+    # Relación para consultas fáciles
+    tenant = relationship("Tenant", back_populates="wallet_transactions")  

@@ -18,8 +18,14 @@ const Login = () => {
     try {
       const res = await api.post('/auth/login', formData);
       localStorage.setItem('token', res.data.access_token);
-      toast.success("Bienvenido!");
-      navigate('/dashboard');
+      if (res.data.is_superuser) {
+        navigate('/admin');
+      } else {
+        
+        toast.success("Bienvenido!");
+        navigate('/dashboard');
+      }
+
     } catch (err) {
       toast.error("Credenciales inválidas");
     }

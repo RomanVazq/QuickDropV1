@@ -43,8 +43,13 @@ def get_public_business_data(
     db: Session = Depends(get_db)
 ):
     tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
-    if not tenant:
-        raise HTTPException(status_code=404, detail="El negocio no existe")
+    
+    # 1. Validamos existencia Y estado activo
+    if not tenant or not getattr(tenant, 'is_active', True):
+        raise HTTPException(
+            status_code=404, 
+            detail="El negocio no existe o no está disponible"
+        )
 
     query = db.query(base.Item).filter(base.Item.tenant_id == tenant.id)
 
@@ -57,9 +62,12 @@ def get_public_business_data(
         )
 
     total_items = query.count()
-    items = query.offset(skip).limit(limit).all()
+    # Usamos joinedload para evitar el problema de N+1 consultas en variantes y extras
+    items = query.options(
+        joinedload(base.Item.variants),
+        joinedload(base.Item.extras)
+    ).offset(skip).limit(limit).all()
 
-    # Formatear items para incluir sus relaciones anidadas
     formatted_items = []
     for item in items:
         formatted_items.append({
@@ -85,7 +93,8 @@ def get_public_business_data(
             "phone": tenant.phone,
             "primary_color": tenant.primary_color,
             "secundary_color": tenant.secundary_color,
-            "logo_url": tenant.logo_url
+            "logo_url": tenant.logo_url,
+            "is_active": tenant.is_active # Lo enviamos por si el front lo necesita
         },
         "items": formatted_items,
         "total_items": total_items,

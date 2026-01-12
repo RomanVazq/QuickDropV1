@@ -112,6 +112,7 @@ const PublicShop = () => {
         setLikedPosts(initialLikes);
       } catch (err) {
         toast.error("Error al cargar la tienda");
+        window.location.href = '/not-found';
       } finally {
         setLoading(false);
       }

@@ -10,6 +10,9 @@ import {
   Tooltip, ResponsiveContainer, LineChart, Line 
 } from 'recharts';
 import { toast } from 'react-hot-toast';
+import UserManagement from '../components/admin/UserManagement';
+import TenantManagement from '../components/admin/TenantManagement';
+import TransactionHistory from '../components/admin/TransactionHistory';
 
 const SuperAdmin = () => {
   const [stats, setStats] = useState({
@@ -26,6 +29,10 @@ const SuperAdmin = () => {
     fetchAdminData();
   }, []);
 
+const onRefresh = () => {
+  setLoading(true);
+  fetchAdminData();
+};
 const fetchAdminData = async () => {
   try {
     const token = localStorage.getItem('token');
@@ -129,83 +136,12 @@ const fetchAdminData = async () => {
             </div>
           </div>
         </div>
-
+            <UserManagement />
         {/* TENANTS TABLE */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h3 className="font-black uppercase text-slate-900 italic tracking-tighter">Lista de Negocios</h3>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Buscar por nombre o slug..." 
-                className="bg-slate-50 border-none rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-slate-900 transition-all w-full md:w-64"
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                  <th className="px-6 py-4">Negocio</th>
-                  <th className="px-6 py-4">Slug / Link</th>
-                  <th className="px-6 py-4">Wallet</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {tenants.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())).map((tenant) => (
-                  <tr key={tenant.id} className="hover:bg-slate-50/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs italic">
-                          {tenant.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm">{tenant.name}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">{tenant.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">/{tenant.slug}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-black ${tenant.wallet_balance > 5 ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {tenant.wallet_balance} pts
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {tenant.is_active ? (
-                        <div className="flex items-center gap-1 text-emerald-600 font-bold text-[10px] uppercase">
-                          <CheckCircle size={12} /> Activo
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-slate-400 font-bold text-[10px] uppercase">
-                          <XCircle size={12} /> Suspendido
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => toggleTenantStatus(tenant.id)}
-                        className={`text-[10px] font-black uppercase px-3 py-2 rounded-lg transition-all ${
-                          tenant.is_active ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
-                        }`}
-                      >
-                        {tenant.is_active ? 'Suspender' : 'Activar'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TenantManagement tenants={tenants} onRefresh={onRefresh} />
+        <div className="mt-12">
+        <TransactionHistory />
+      </div>
       </div>
     </div>
   );

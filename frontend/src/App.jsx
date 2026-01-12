@@ -8,11 +8,13 @@ import SuperAdmin from './pages/SuperAdmin';
 import './index.css'
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/landingPage/LandingPage';
+import BusinessNotFound from './pages/BusinessNotFound';
 function App() {
   return (
     <Router>
       <Toaster position="top-right" />
       <Routes>
+        <Route path="/not-found" element={<BusinessNotFound />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
