@@ -169,28 +169,46 @@ const PublicShop = () => {
     });
   };
 
-  const confirmAddition = (customItem) => {
-    // Generar llave única: ID-VarianteID-ExtrasIDs
-    const variantPart = customItem.selectedVariant?.id || 'base';
-    const extrasPart = customItem.selectedExtras.map(e => e.id).sort().join('-');
-    const cartKey = `${customItem.id}-${variantPart}-${extrasPart}`;
+const confirmAddition = (customItem) => {
+  // 1. Generar llave única
+  const variantPart = customItem.selectedVariant?.id || 'base';
+  const extrasPart = customItem.selectedExtras.map(e => e.id).sort().join('-');
+  const cartKey = `${customItem.id}-${variantPart}-${extrasPart}`;
 
-    setAllItems(prev => ({
-      ...prev,
-      [cartKey]: { 
-        ...customItem, 
-        isCustom: true, 
-        price: customItem.totalPrice // Precio unitario con extras
-      }
-    }));
+  // 2. Lógica de validación de Stock
+  const currentQtyInCart = cart[cartKey] || 0;
+  const totalAfterAddition = currentQtyInCart + customItem.cartQuantity;
 
-    setCart(prev => ({
-      ...prev,
-      [cartKey]: (prev[cartKey] || 0) + customItem.cartQuantity
-    }));
+  // Si no es servicio, validamos contra el stock base del item
+  if (!customItem.is_service && totalAfterAddition > customItem.stock) {
+    const availableToAdd = customItem.stock - currentQtyInCart;
+    
+    if (availableToAdd <= 0) {
+      toast.error(`No hay más stock disponible. Ya tienes ${currentQtyInCart} en el carrito.`);
+    } else {
+      toast.error(`Solo puedes agregar ${availableToAdd} más (Stock máximo: ${customItem.stock})`);
+    }
+    return; // Detenemos la ejecución
+  }
 
-    toast.success("Agregado con éxito");
-  };
+  // 3. Si pasa la validación, procedemos a guardar
+  setAllItems(prev => ({
+    ...prev,
+    [cartKey]: { 
+      ...customItem, 
+      isCustom: true, 
+      price: customItem.totalPrice 
+    }
+  }));
+
+  setCart(prev => ({
+    ...prev,
+    [cartKey]: totalAfterAddition
+  }));
+
+  setIsOptionsModalOpen(false); // Cerramos el modal
+  toast.success("Agregado con éxito");
+};
 
   const confirmService = (id, date) => {
     setCart(prev => ({ ...prev, [id]: 1 }));

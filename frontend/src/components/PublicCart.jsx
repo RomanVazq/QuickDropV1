@@ -59,7 +59,6 @@ const PublicCart = ({
                    `✅ _Pedido enviado desde el catálogo digital_`;
 
       toast.success("¡Pedido registrado con éxito!");
-      
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${business_phone}&text=${encodeURIComponent(text)}`;
       
       setTimeout(() => {

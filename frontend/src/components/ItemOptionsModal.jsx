@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, Plus, Minus } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const ItemOptionsModal = ({ isOpen, onClose, item, onConfirm }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -25,6 +26,15 @@ const ItemOptionsModal = ({ isOpen, onClose, item, onConfirm }) => {
     );
   };
 
+const isOutOfStock = () => {
+  if (item.is_service) return false;
+
+  // Forzamos que tome el stock del item principal
+  const currentStock = item.stock;
+
+     // Sin control de stock
+  return quantity >= currentStock;
+};
   const calculateTotal = () => {
     let base = item.price;
     if (selectedVariant) base = selectedVariant.price;
@@ -119,7 +129,7 @@ const ItemOptionsModal = ({ isOpen, onClose, item, onConfirm }) => {
               <div className="flex items-center gap-6">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 bg-white rounded-xl shadow-sm"><Minus size={18}/></button>
                 <span className="text-lg font-black italic">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="p-2 bg-white rounded-xl shadow-sm"><Plus size={18}/></button>
+                <button onClick={() => setQuantity(quantity + 1)} className="p-2 bg-white rounded-xl shadow-sm" disabled={isOutOfStock()}><Plus size={18}/></button>
               </div>
             </div>
           )}
