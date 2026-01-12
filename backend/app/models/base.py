@@ -63,7 +63,7 @@ class ItemVariant(Base):
     item_id = Column(String, ForeignKey("items.id"), nullable=False)
     name = Column(String, nullable=False)
     price = Column(Float, nullable=False)
-    
+    stock = Column(Integer, default=0)
     item = relationship("Item", back_populates="variants")
 
 class ItemExtra(Base):
@@ -72,7 +72,7 @@ class ItemExtra(Base):
     item_id = Column(String, ForeignKey("items.id"), nullable=False)
     name = Column(String, nullable=False)
     price = Column(Float, default=0.0)
-    
+    stock = Column(Integer, default=0)
     item = relationship("Item", back_populates="extras")
 
 # --- PEDIDOS Y FACTURACIÓN ---

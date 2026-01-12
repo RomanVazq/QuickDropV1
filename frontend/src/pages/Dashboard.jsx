@@ -9,51 +9,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { ConfigBusiness } from '../components/PerfilCustom';
-
-// --- COMPONENTE: GESTIÓN DE VARIANTES Y EXTRAS ---
-const ProductOptionsManager = ({ options, setOptions, title, type = 'variant' }) => {
-  const [itemName, setItemName] = useState('');
-  const [itemPrice, setItemPrice] = useState('');
-
-  const addOption = () => {
-    if (!itemName || !itemPrice) return;
-    const newOption = {
-      id: `temp-${Date.now()}`,
-      name: itemName,
-      price: parseFloat(itemPrice)
-    };
-    setOptions([...options, newOption]);
-    setItemName('');
-    setItemPrice('');
-  };
-
-  const removeOption = (id) => {
-    setOptions(options.filter(opt => opt.id !== id));
-  };
-
-  return (
-    <div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100 space-y-3">
-      <div className="flex items-center gap-2">
-        {type === 'variant' ? <Layers size={14} className="text-slate-400" /> : <Tag size={14} className="text-slate-400" />}
-        <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-500">{title}</h3>
-      </div>
-      <div className="flex gap-2">
-        <input type="text" placeholder="Ej: Grande" className="flex-1 p-2 bg-white rounded-xl text-xs font-bold outline-none border border-slate-100" value={itemName} onChange={e => setItemName(e.target.value)} />
-        <input type="number" placeholder="$" className="w-16 p-2 bg-white rounded-xl text-xs font-bold outline-none border border-slate-100" value={itemPrice} onChange={e => setItemPrice(e.target.value)} />
-        <button type="button" onClick={addOption} className="bg-slate-900 text-white p-2 rounded-xl hover:bg-orange-500 transition-colors"><Plus size={16} /></button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => (
-          <div key={opt.id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-200 animate-in zoom-in-95">
-            <span className="text-[10px] font-black uppercase text-slate-700">{opt.name}</span>
-            <span className="text-[10px] font-bold text-orange-500">+${opt.price}</span>
-            <button type="button" onClick={() => removeOption(opt.id)} className="text-slate-300 hover:text-red-500"><X size={12} /></button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+import { ProductOptionsManager } from '../components/ProductOptionsManager';
 
 // --- COMPONENTE: VISTA DE MURO ---
 const PostsView = ({ posts, onDelete }) => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Minus, Plus, MessageSquare, Loader2, Calendar, Tag, Layers } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import api from '../services/api';
+import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 
 const PublicCart = ({ 

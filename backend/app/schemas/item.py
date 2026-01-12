@@ -6,7 +6,7 @@ from typing import Optional, List
 class VariantBase(BaseModel):
     name: str # Ej: "Grande", "Rojo"
     price: int = Field(..., ge=0)
-
+    stock: int = Field(default=0)
 class VariantResponse(VariantBase):
     id: str
     class Config:
@@ -15,6 +15,7 @@ class VariantResponse(VariantBase):
 class ExtraBase(BaseModel):
     name: str # Ej: "Queso Extra", "Envase de regalo"
     price: int = Field(..., ge=0)
+    stock: int = Field(default=0)
 
 class ExtraResponse(ExtraBase):
     id: str
