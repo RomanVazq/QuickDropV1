@@ -144,56 +144,80 @@ if (activeTab === 'menu') {
   }
 
   // --- VISTA DE MURO (SOCIAL POSTS) ---
-  return (
-    <div className="space-y-8 py-4 animate-in fade-in duration-300 pb-24">
+ return (
+    <div className="max-w-2xl mx-auto space-y-10 py-6 animate-in fade-in duration-500 pb-32 px-4">
       {data.posts && data.posts.map(post => (
-        <div key={post.id} className="bg-white group">
-          {/* Header del Post */}
-          <div className="flex items-center gap-3 p-4">
-            <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-[10px] text-white font-black italic shadow-lg">
-              {data.business?.name?.charAt(0)}
-            </div>
-            <div>
-              <p className="font-black text-[11px] uppercase tracking-tighter text-slate-900">{data.business?.name}</p>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Publicado recientemente</p>
+        <div 
+          key={post.id} 
+          className="bg-white border-2 border-slate-100 rounded-[3rem] overflow-hidden shadow-[0_8px_30px_-4px_rgba(0,0,0,0.04)] transition-all hover:border-slate-200"
+        >
+          {/* Header del Post: Elegante y minimalista */}
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-[12px] text-white font-black italic border-2 border-slate-900 shadow-sm rotate-3">
+                {data.business?.name?.charAt(0)}
+              </div>
+              <div>
+                <p className="font-black text-xs uppercase tracking-tighter text-slate-900">
+                  {data.business?.name}
+                </p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                  Publicado recientemente
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Imagen del Post */}
-          <div className="w-full aspect-square overflow-hidden bg-slate-50 relative">
-            <img
-              src={post.image_url}
-              className="w-full h-full object-cover select-none"
-              alt=""
-              onDoubleClick={() => handleLike(post.id)}
-            />
-            {/* Overlay sutil al pasar el mouse (solo desktop) */}
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          {/* Imagen del Post: Con bordes internos suavizados */}
+          <div className="px-5">
+            <div className="aspect-square overflow-hidden rounded-[2rem] bg-slate-50 border border-slate-100 relative group">
+              <img
+                src={post.image_url}
+                className="w-full h-full object-cover select-none transition-transform duration-700 group-hover:scale-105"
+                alt=""
+                onDoubleClick={() => handleLike(post.id)}
+              />
+              {/* Overlay de Like (Doble Tap) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-active:opacity-100 transition-opacity">
+                 <Heart size={80} className="text-white fill-white drop-shadow-2xl" />
+              </div>
+            </div>
           </div>
 
-          {/* Footer del Post e Interacciones */}
-          <div className="p-5">
-            <div className="flex justify-between items-start gap-6">
+          {/* Footer e Interacciones */}
+          <div className="p-6">
+            <div className="flex justify-between items-start gap-8">
               <div className="flex-1 min-w-0">
-                <p className="text-sm leading-relaxed text-slate-800 font-medium">
-                  {post.content}
+                <p className="text-[13px] leading-relaxed text-slate-600 font-medium italic">
+                   <span className="font-black text-slate-900 uppercase not-italic mr-2">
+                     @{data.business?.slug}
+                   </span>
+                   {post.content}
                 </p>
               </div>
 
+              {/* Botón de Like Estilo Cápsula */}
               <div className="flex flex-col items-center">
                 <button
                   onClick={() => handleLike(post.id)}
-                  className={`p-3 rounded-full transition-all active:scale-150 ${likedPosts.has(post.id) ? 'text-red-500 bg-red-50' : 'text-slate-900 bg-slate-50'}`}
+                  className={`p-4 rounded-2xl border-2 transition-all active:scale-125 ${
+                    likedPosts.has(post.id) 
+                    ? 'bg-red-50 border-red-100 text-red-500 shadow-lg shadow-red-100' 
+                    : 'bg-slate-50 border-slate-100 text-slate-900 hover:border-slate-900'
+                  }`}
                 >
-                  <Heart size={24} className={likedPosts.has(post.id) ? 'fill-current' : ''} />
+                  <Heart 
+                    size={22} 
+                    strokeWidth={3} 
+                    className={likedPosts.has(post.id) ? 'fill-current' : ''} 
+                  />
                 </button>
-                <span className="font-black text-[9px] uppercase tracking-tighter mt-1 text-slate-400">
-                  {post.likes_count || 0} Likes
+                <span className="font-black text-[10px] uppercase tracking-widest mt-2 text-slate-900">
+                  {post.likes_count || 0}
                 </span>
               </div>
             </div>
           </div>
-          <div className="h-[1px] bg-slate-50 mx-4" />
         </div>
       ))}
     </div>
