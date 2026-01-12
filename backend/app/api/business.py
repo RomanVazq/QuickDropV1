@@ -78,8 +78,8 @@ def get_public_business_data(
             "image_url": item.image_url,
             "is_service": item.is_service,
             "stock": item.stock,
-            "variants": [{"id": v.id, "name": v.name, "price": v.price} for v in item.variants],
-            "extras": [{"id": e.id, "name": e.name, "price": e.price} for e in item.extras]
+            "variants": [{"id": v.id, "name": v.name, "price": v.price, "stock": v.stock} for v in item.variants],
+            "extras": [{"id": e.id, "name": e.name, "price": e.price, "stock": e.stock} for e in item.extras]
         })
 
     posts = db.query(base.Post).filter(base.Post.tenant_id == tenant.id)\
@@ -208,12 +208,12 @@ async def create_product(
     if variants:
         v_list = json.loads(variants)
         for v in v_list:
-            db.add(base.ItemVariant(item_id=new_item.id, name=v['name'], price=float(v['price'])))
+            db.add(base.ItemVariant(item_id=new_item.id, name=v['name'], price=float(v['price']), stock=int(v.get('stock', 0))))
 
     if extras:
         e_list = json.loads(extras)
         for e in e_list:
-            db.add(base.ItemExtra(item_id=new_item.id, name=e['name'], price=float(e['price'])))
+            db.add(base.ItemExtra(item_id=new_item.id, name=e['name'], price=float(e['price']), stock=int(e.get('stock', 0))))
     if description:
         new_item.description = description
     else:
@@ -255,14 +255,14 @@ async def update_product(
         db.query(base.ItemVariant).filter(base.ItemVariant.item_id == item.id).delete()
         v_list = json.loads(variants)
         for v in v_list:
-            db.add(base.ItemVariant(item_id=item.id, name=v['name'], price=float(v['price'])))
+            db.add(base.ItemVariant(item_id=item.id, name=v['name'], price=float(v['price']), stock=int(v.get('stock', 0))))
 
     # Actualizar Extras
     if extras is not None:
         db.query(base.ItemExtra).filter(base.ItemExtra.item_id == item.id).delete()
         e_list = json.loads(extras)
         for e in e_list:
-            db.add(base.ItemExtra(item_id=item.id, name=e['name'], price=float(e['price'])))
+            db.add(base.ItemExtra(item_id=item.id, name=e['name'], price=float(e['price']), stock=int(e.get('stock', 0))))
 
     db.commit()
     return item
