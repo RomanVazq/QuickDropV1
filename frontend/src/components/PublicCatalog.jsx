@@ -197,9 +197,6 @@ if (activeTab === 'menu') {
             <div className="flex justify-between items-start gap-8">
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] leading-relaxed text-slate-600 font-medium italic">
-                   <span className="font-black text-slate-900 uppercase not-italic mr-2">
-                     @{data.business?.slug}
-                   </span>
                    {post.content}
                 </p>
               </div>
