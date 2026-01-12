@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { 
-  Users, Store, CreditCard, TrendingUp, 
+import {
+  Users, Store, CreditCard, TrendingUp,
   Search, MoreVertical, CheckCircle, XCircle,
-  AlertCircle, DollarSign, ArrowUpRight
+  AlertCircle, DollarSign, ArrowUpRight, Plus
 } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, LineChart, Line 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, LineChart, Line
 } from 'recharts';
 import { toast } from 'react-hot-toast';
 import UserManagement from '../components/admin/UserManagement';
 import TenantManagement from '../components/admin/TenantManagement';
 import TransactionHistory from '../components/admin/TransactionHistory';
-
+import CreateTenantModal from '../components/admin/CreateTenantModal';
 const SuperAdmin = () => {
   const [stats, setStats] = useState({
     total_tenants: 0,
@@ -24,50 +24,50 @@ const SuperAdmin = () => {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   useEffect(() => {
     fetchAdminData();
   }, []);
 
-const onRefresh = () => {
-  setLoading(true);
-  fetchAdminData();
-};
-const fetchAdminData = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error("Sesión no encontrada");
-      return;
+  const onRefresh = () => {
+    setLoading(true);
+    fetchAdminData();
+  };
+  const fetchAdminData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error("Sesión no encontrada");
+        return;
+      }
+
+      const [statsRes, tenantsRes] = await Promise.all([
+        api.get('/admin/global-stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        api.get('/admin/tenants', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      setStats(statsRes.data);
+      setTenants(tenantsRes.data);
+    } catch (err) {
+
+      if (err.response?.status === 403) {
+        toast.error("Acceso denegado: No eres administrador");
+        window.location.href = '/login';
+      } else if (err.response?.status === 401) {
+        toast.error("Sesión expirada, vuelve a iniciar sesión");
+        window.location.href = '/login';
+      } else {
+        toast.error("Error al cargar datos del sistema");
+        window.location.href = '/login';
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const [statsRes, tenantsRes] = await Promise.all([
-      api.get('/admin/global-stats', {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
-      api.get('/admin/tenants', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    ]);
-
-    setStats(statsRes.data);
-    setTenants(tenantsRes.data);
-  } catch (err) {
-
-    if (err.response?.status === 403) {
-      toast.error("Acceso denegado: No eres administrador");
-      window.location.href = '/login';
-    } else if (err.response?.status === 401) {
-      toast.error("Sesión expirada, vuelve a iniciar sesión");
-      window.location.href = '/login';
-    } else {
-      toast.error("Error al cargar datos del sistema");
-      window.location.href = '/login';
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const toggleTenantStatus = async (tenantId) => {
     try {
@@ -84,7 +84,7 @@ const fetchAdminData = async () => {
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -117,7 +117,7 @@ const fetchAdminData = async () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} fontSize={10} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
                   <Bar dataKey="wallet_balance" fill="#0f172a" radius={[6, 6, 0, 0]} barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
@@ -126,22 +126,34 @@ const fetchAdminData = async () => {
 
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
             <div className="flex items-center justify-between mb-4">
-               <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest">Estado del Servidor</h3>
-               <ArrowUpRight className="text-slate-300" size={20} />
+              <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest">Estado del Servidor</h3>
+              <ArrowUpRight className="text-slate-300" size={20} />
             </div>
             <div className="space-y-4">
-               <StatusIndicator label="Base de Datos" status="Excelente" value="99%" />
-               <StatusIndicator label="Storage (Supabase)" status="Normal" value="45%" />
-               <StatusIndicator label="Latencia API" status="Baja" value="120ms" />
+              <StatusIndicator label="Base de Datos" status="Excelente" value="99%" />
+              <StatusIndicator label="Storage (Supabase)" status="Normal" value="45%" />
+              <StatusIndicator label="Latencia API" status="Baja" value="120ms" />
             </div>
           </div>
         </div>
-            <UserManagement />
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg"
+        >
+          <Plus size={16} /> Nuevo Negocio
+        </button>
+      {isCreateModalOpen && (
+        <CreateTenantModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => { setIsCreateModalOpen(false); onRefresh(); }} 
+        />
+      )}
+        <UserManagement />
         {/* TENANTS TABLE */}
         <TenantManagement tenants={tenants} onRefresh={onRefresh} />
         <div className="mt-12">
-        <TransactionHistory />
-      </div>
+          <TransactionHistory />
+        </div>
       </div>
     </div>
   );
