@@ -155,7 +155,15 @@ if (activeTab === 'menu') {
           <div className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-[12px] text-white font-black italic border-2 border-slate-900 shadow-sm rotate-3">
-                {data.business?.name?.charAt(0)}
+                {data.business?.logo_url ? (
+                  <img 
+                    src={data.business.logo_url}
+                    alt="Logo del negocio"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
+                ) : (
+                  data.business?.name?.charAt(0)
+                )}
               </div>
               <div>
                 <p className="font-black text-xs uppercase tracking-tighter text-slate-900">
