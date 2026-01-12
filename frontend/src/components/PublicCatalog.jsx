@@ -27,113 +27,116 @@ const PublicCatalog = ({
   }
 
   // --- VISTA DE MENÚ (PRODUCTOS Y SERVICIOS) ---
-  if (activeTab === 'menu') {
+if (activeTab === 'menu') {
     if (!data.items || data.items.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in">
-          <div className="bg-slate-50 p-6 rounded-full mb-4">
-            <Search size={40} className="text-slate-300" />
+        <div className="flex flex-col items-center justify-center py-32 animate-in fade-in duration-700">
+          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+            <Search size={24} className="text-slate-200" />
           </div>
-          <h3 className="font-bold text-slate-800 uppercase text-sm">Sin coincidencias</h3>
-          <p className="text-xs text-slate-400 font-medium mt-1">No hay productos disponibles en este momento.</p>
+          <p className="text-[10px] font-bold tracking-[0.2em] text-slate-300 uppercase">Sin resultados</p>
         </div>
       );
     }
 
     return (
-      <div className="p-4 space-y-3 animate-in fade-in duration-300 pb-24">
+      <div className="p-5 space-y-4 max-w-2xl mx-auto pb-32 animate-in fade-in duration-500">
         {data.items.map(item => {
           const currentQty = cart[item.id] || 0;
-          // Lógica: Si es servicio, NO se agota. Si es producto, depende del stock.
           const isOutOfStock = !item.is_service && item.stock <= 0;
-          const hasReachedLimit = !item.is_service && currentQty >= item.stock;
 
           return (
-            <div key={item.id} className={`flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-[2rem] shadow-sm transition-all ${isOutOfStock ? 'opacity-50' : 'hover:border-slate-200'}`}>
-              
-              {/* Imagen con badges dinámicos */}
-              <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-[1.5rem] bg-slate-100 shadow-inner">
+            <div 
+              key={item.id} 
+              className={`group bg-white rounded-[2.5rem] p-4 flex gap-5 border-2 border-slate-100 transition-all duration-300 hover:border-teal-500/30 hover:shadow-xl hover:shadow-slate-200/50 ${isOutOfStock ? 'opacity-50' : ''}`}
+            >
+              {/* IMAGEN: Enmarcada sutilmente */}
+              <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-[1.8rem] bg-slate-50 border border-slate-100">
                 <img 
                   src={item.image_url || 'https://via.placeholder.com/150'} 
-                  className={`w-full h-full object-cover ${isOutOfStock ? 'grayscale' : ''}`} 
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105" 
                   alt={item.name} 
                 />
-                {isOutOfStock && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                    <span className="text-[8px] font-black text-white uppercase tracking-tighter">Agotado</span>
-                  </div>
-                )}
                 {item.is_service && (
-                  <div className="absolute top-2 left-2 bg-teal-500 text-[7px] font-black text-white px-2 py-0.5 rounded-full uppercase shadow-lg">
-                    Servicio
+                   <div className="absolute top-2 left-2 bg-teal-500 px-2 py-0.5 rounded-full border border-white shadow-sm">
+                    <span className="text-[7px] font-black text-white uppercase tracking-tighter">Servicio</span>
                   </div>
                 )}
               </div>
 
-              {/* Información del Item */}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-black text-slate-900 text-sm uppercase leading-tight truncate">{item.name}</h3>
-                <p className="text-[10px] text-slate-500 font-medium line-clamp-2 mt-1 leading-relaxed">
-                  {item.description || "Sin descripción disponible."}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-orange-600 font-black text-lg">${item.price}</span>
-                  <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                    {item.is_service ? '• Entrega Inmediata' : `• Stock: ${item.stock}`}
-                  </span>
+              {/* CONTENIDO */}
+              <div className="flex-1 flex flex-col justify-between min-w-0 py-1">
+                <div>
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">
+                      {item.name}
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed line-clamp-2 mt-1 uppercase tracking-tight">
+                    {item.description || "Calidad y detalle en cada pedido."}
+                  </p>
                 </div>
-              </div>
+                
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-lg font-black text-slate-900 italic">
+                    ${item.price}
+                  </span>
 
-              {/* Botones de Acción */}
-              <div className="flex flex-col items-center justify-center">
-                {!cart[item.id] ? (
-                  <button
-                    disabled={isOutOfStock}
-                    onClick={() => updateQuantity(item.id, 1)}
-                    className={`p-4 rounded-2xl transition-all ${isOutOfStock ? 'bg-slate-50 text-slate-200 cursor-not-allowed' : 'bg-slate-900 text-white active:scale-90 shadow-md shadow-slate-200'}`}
-                  >
-                    <Plus size={20} />
-                  </button>
-                ) : (
-                  <div className="flex flex-col items-center gap-1 bg-slate-900 text-white p-1 rounded-2xl animate-in zoom-in-95">
-                    <button onClick={() => updateQuantity(item.id, 1)} disabled={hasReachedLimit} className={`p-2 ${hasReachedLimit ? 'text-slate-600' : 'text-white'}`}><Plus size={16} /></button>
-                    <span className="font-black text-xs h-5 flex items-center justify-center">{currentQty}</span>
-                    <button onClick={() => updateQuantity(item.id, -1)} className="p-2 text-white/50 hover:text-white"><Minus size={16} /></button>
-                  </div>
-                )}
+                  {/* CONTROL DE CANTIDAD */}
+                  {!cart[item.id] ? (
+                    <button
+                      disabled={isOutOfStock}
+                      onClick={() => updateQuantity(item.id, 1)}
+                      className="bg-slate-900 text-white px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-500 transition-all active:scale-95 disabled:bg-slate-50 disabled:text-slate-200"
+                    >
+                      Añadir
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-3 bg-slate-900 p-1 rounded-2xl border-2 border-slate-900 shadow-lg shadow-slate-200">
+                      <button 
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800 text-white hover:text-red-400 transition-colors"
+                      >
+                        <Minus size={12} strokeWidth={3} />
+                      </button>
+                      <span className="text-xs font-black text-white min-w-[12px] text-center">{currentQty}</span>
+                      <button 
+                        onClick={() => updateQuantity(item.id, 1)}
+                        disabled={!item.is_service && currentQty >= item.stock}
+                        className="w-7 h-7 flex items-center justify-center rounded-xl bg-slate-800 text-white hover:text-teal-400 transition-colors disabled:opacity-30"
+                      >
+                        <Plus size={12} strokeWidth={3} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );
         })}
 
-        {/* Paginación */}
-        <div className="flex justify-center items-center py-10 gap-2">
+        {/* PAGINACIÓN CON CONTORNOS */}
+        <div className="flex justify-center items-center py-10 gap-3">
           <button
             onClick={() => { setCurrentPage(prev => Math.max(0, prev - 1)); window.scrollTo(0,0); }}
-            disabled={currentPage === 0 || isloading}
-            className="p-3 rounded-xl border border-slate-100 disabled:opacity-20 active:scale-90 transition-all bg-white shadow-sm"
+            disabled={currentPage === 0}
+            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border-2 border-slate-100 text-slate-400 disabled:opacity-0 transition-all hover:border-slate-900 hover:text-slate-900"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} strokeWidth={3} />
           </button>
           
-          <div className="flex gap-1">
-            {[...Array(Math.ceil(totalItems / itemsPerPage))].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setCurrentPage(i); window.scrollTo(0,0); }}
-                className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all ${currentPage === i ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-400'}`}
-              >
-                {i + 1}
-              </button>
-            ))}
+          <div className="border-2 border-slate-100 px-5 py-1.5 rounded-2xl bg-white">
+            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+              {currentPage + 1}
+            </span>
           </div>
 
           <button
             onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo(0,0); }}
-            disabled={(currentPage + 1) * itemsPerPage >= totalItems || isloading}
-            className="p-3 rounded-xl border border-slate-100 disabled:opacity-20 active:scale-90 transition-all bg-white shadow-sm"
+            disabled={(currentPage + 1) * itemsPerPage >= totalItems}
+            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white border-2 border-slate-100 text-slate-400 disabled:opacity-0 transition-all hover:border-slate-900 hover:text-slate-900"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} strokeWidth={3} />
           </button>
         </div>
       </div>
