@@ -65,7 +65,7 @@ def update_admin_user(user_id: int, user_data: dict, db: Session = Depends(get_d
     return {"status": "updated"}
 
 @router.delete("/users/{user_id}")
-def delete_admin_user(user_id: int, db: Session = Depends(get_db), admin = Depends(get_super_user)):
+def delete_admin_user(user_id: str, db: Session = Depends(get_db), admin = Depends(get_super_user)):
     user = db.query(base.User).filter(base.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
