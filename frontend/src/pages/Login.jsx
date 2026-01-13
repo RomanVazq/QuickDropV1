@@ -28,6 +28,7 @@ const Login = () => {
 
     } catch (err) {
       toast.error("Credenciales inválidas");
+      console.error(err);
     }
   };
 
