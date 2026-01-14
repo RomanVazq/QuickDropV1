@@ -212,7 +212,7 @@ const Dashboard = () => {
                         items.map(item => (
                           <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
                             <td className="px-8 py-6 flex items-center gap-4">
-                              <img src={item.image_url || 'https://via.placeholder.com/150'} className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" />
+                              <img src={item.image_url  } className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" />
                               <div>
                                 <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
                                 <p className="text-teal-500 font-black text-sm mt-1">${item.price}</p>

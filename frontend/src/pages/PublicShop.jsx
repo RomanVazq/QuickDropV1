@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { ShoppingBag, Search, X } from 'lucide-react';
+import { ShoppingBag, Search, X, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { Header } from '../components/Header';
@@ -9,6 +9,7 @@ import PublicCatalog from '../components/catalogo/PublicCatalog';
 import PublicCart from '../components/catalogo/PublicCart';
 import ServiceModal from '../components/ServiceModal';
 import ItemOptionsModal from '../components/ItemOptionsModal';
+import ItemDetailModal from '../components/catalogo/ItemDetailModal';
 
 const PublicShop = () => {
   const { slug } = useParams();
@@ -18,7 +19,7 @@ const PublicShop = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 5;
+  const itemsPerPage = 12; // Aumentado para mejor flujo visual
 
   const [activeTab, setActiveTab] = useState('menu');
   const [step, setStep] = useState(1);
@@ -26,19 +27,16 @@ const PublicShop = () => {
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  const [searchQuery, setSearchQuery] = useState(''); 
-  const [inputValue, setInputValue] = useState('');   
+  const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
 
   const [cart, setCart] = useState({});
   const [formData, setFormData] = useState({
-    customer_name: '',
-    address: '',
-    appointment_datetime: '',
-    notes: ''
+    customer_name: '', address: '', appointment_datetime: '', notes: ''
   });
   const [likedPosts, setLikedPosts] = useState(new Set());
-
-  // PERSISTENCIA
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  // --- PERSISTENCIA ---
   useEffect(() => {
     const savedCart = localStorage.getItem(`cart_${slug}`);
     const savedItems = localStorage.getItem(`items_cache_${slug}`);
@@ -53,7 +51,7 @@ const PublicShop = () => {
     }
   }, [cart, allItems, slug]);
 
-  // DEBOUNCE BÚSQUEDA
+  // --- DEBOUNCE BÚSQUEDA ---
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchQuery(inputValue);
@@ -62,7 +60,7 @@ const PublicShop = () => {
     return () => clearTimeout(timer);
   }, [inputValue]);
 
-  // CARGA DE DATOS
+  // --- CARGA DE DATOS ---
   useEffect(() => {
     const fetchShop = async () => {
       try {
@@ -74,12 +72,11 @@ const PublicShop = () => {
         ]);
 
         const newItems = bizRes.data.items || [];
-        
         setAllItems(prev => {
           const updated = { ...prev };
           newItems.forEach(item => {
             if (!updated[item.id] || !updated[item.id].isCustom) {
-                updated[item.id] = item;
+              updated[item.id] = item;
             }
           });
           return updated;
@@ -89,26 +86,21 @@ const PublicShop = () => {
         setTotalItems(bizRes.data.total_items || 0);
         setLikedPosts(new Set(socialRes.data.filter(p => p.is_liked).map(p => p.id)));
       } catch (err) {
-        toast.error("Error al cargar la tienda");
-        if (err.response && err.response.status === 404) {
-          window.location.href = '/not-found';
-        }
+        toast.error("Error al cargar");
+        if (err.response?.status === 404) window.location.href = '/not-found';
       } finally { setLoading(false); }
     };
     fetchShop();
   }, [slug, currentPage, searchQuery]);
 
-  // MAPPING DEL CARRITO
+  // --- LOGICA DE NEGOCIO ---
   const cartArray = Object.keys(cart).map(key => ({
-    ...allItems[key],
-    cartKey: key,
-    quantity: cart[key]
+    ...allItems[key], cartKey: key, quantity: cart[key]
   })).filter(item => item.id);
 
   const cartTotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const hasService = cartArray.some(item => item.is_service);
 
-  // --- LÓGICA DE ACTUALIZACIÓN DE STOCK LOCAL (OPTIMISTA) ---
   const updateLocalStock = (productId, variantId, delta) => {
     setData(prev => ({
       ...prev,
@@ -117,7 +109,7 @@ const PublicShop = () => {
           return {
             ...p,
             stock: p.stock - delta,
-            variants: p.variants?.map(v => 
+            variants: p.variants?.map(v =>
               v.id === variantId ? { ...v, stock: v.stock - delta } : v
             )
           };
@@ -127,30 +119,24 @@ const PublicShop = () => {
     }));
   };
 
-  // LOGICA DE CANTIDADES (BOTONES +/-)
   const updateQuantity = (cartKey, delta) => {
     const item = allItems[cartKey];
-    
-    // Si no existe el item en caché, no hacer nada
     if (!item) return;
 
-    // 1. Si el usuario intenta agregar un item con opciones por primera vez
     if (delta > 0 && !item?.isCustom && (item?.variants?.length > 0 || item?.extras?.length > 0)) {
       setSelectedItem(item);
       setIsOptionsModalOpen(true);
       return;
     }
 
-    // 2. Validación de Stock antes de proceder
     if (delta > 0 && !item.is_service) {
       const currentInStock = data.items.find(p => p.id === (item.id))?.stock;
       if (currentInStock <= 0) {
-        toast.error("Sin stock disponible");
+        toast.error("Sin stock");
         return;
       }
     }
 
-    // 3. Manejo de Servicios
     if (item?.is_service && delta > 0) {
       if (cartArray.some(ci => ci.is_service) && !cart[cartKey]) {
         toast.error("Solo un servicio por cita.");
@@ -164,7 +150,6 @@ const PublicShop = () => {
       if (cart[cartKey] >= 1) return;
     }
 
-    // 4. Actualizar Carrito y Stock local
     setCart(prev => {
       const newQty = (prev[cartKey] || 0) + delta;
       if (newQty <= 0) {
@@ -174,38 +159,23 @@ const PublicShop = () => {
       return { ...prev, [cartKey]: newQty };
     });
 
-    // Restamos o sumamos al stock visual
-    if (!item.is_service) {
-      updateLocalStock(item.id, item.selectedVariant?.id, delta);
-    }
+    if (!item.is_service) updateLocalStock(item.id, item.selectedVariant?.id, delta);
   };
 
-  // CONFIRMAR VARIANTES/EXTRAS DESDE MODAL
   const confirmAddition = (customItem) => {
     const variantId = customItem.selectedVariant?.id || 'base';
     const extrasIds = customItem.selectedExtras.map(e => e.id).sort().join('-');
     const cartKey = `${customItem.id}_v${variantId}_e${extrasIds}`;
 
-    // Validar si hay stock suficiente en el estado actual antes de confirmar
-    const productInState = data.items.find(p => p.id === customItem.id);
-    if (!customItem.is_service && productInState) {
-      if (customItem.cartQuantity > productInState.stock) {
-        toast.error("Stock insuficiente para esta cantidad");
-        return;
-      }
-    }
-
-    // Actualizamos el stock visual (Descuento optimista)
     if (!customItem.is_service) {
       updateLocalStock(customItem.id, customItem.selectedVariant?.id, customItem.cartQuantity);
     }
 
-    // Guardamos la configuración personalizada en el caché de items
     setAllItems(prev => ({
       ...prev,
-      [cartKey]: { 
-        ...customItem, 
-        isCustom: true, 
+      [cartKey]: {
+        ...customItem,
+        isCustom: true,
         price: customItem.totalPrice,
         variant_name: customItem.selectedVariant?.name || null,
         extras_names: customItem.selectedExtras.map(e => e.name).join(", ")
@@ -214,14 +184,13 @@ const PublicShop = () => {
 
     setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + customItem.cartQuantity }));
     setIsOptionsModalOpen(false);
-    toast.success("Agregado con éxito");
+    toast.success("Agregado");
   };
 
   const confirmService = (id, date) => {
     setCart(prev => ({ ...prev, [id]: 1 }));
     setFormData(prev => ({ ...prev, appointment_datetime: date }));
     setIsServiceModalOpen(false);
-    toast.success("Horario agendado");
   };
 
   const handleLike = async (postId) => {
@@ -231,90 +200,117 @@ const PublicShop = () => {
       isLiked ? newSet.delete(postId) : newSet.add(postId);
       return newSet;
     });
-    try { await api.post(`/social/posts/${postId}/like`); } catch (err) {}
+    try { await api.post(`/social/posts/${postId}/like`); } catch (err) { }
   };
 
   return (
-    <div className="min-h-screen bg-white pb-20 font-sans">
-      {/* Botón flotante Carrito */}
-      {cartTotal > 0 && step === 1 && (
-        <button onClick={() => setStep(2)} className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-          <ShoppingBag size={18} className="text-orange-500" />
-          <div className="text-left">
-            <p className="text-[10px] font-black uppercase opacity-60">Ver Mi Orden</p>
-            <p className="text-lg font-black">${cartTotal}</p>
-          </div>
-        </button>
-      )}
+    <div className="min-h-screen bg-slate-50/50 selection:bg-slate-900 selection:text-white">
+      <div className="max-w-[480px] mx-auto bg-white min-h-screen shadow-[0_0_50px_-12px_rgba(0,0,0,0.1)] relative flex flex-col">
 
-      <Header data={data} />
+        {/* Header Superior */}
+        <Header data={data} />
 
-      {step === 1 && (
-        <div className="sticky top-0 z-40 bg-white border-b border-slate-100">
-          <div className="flex">
-            {['menu', 'gallery'].map(t => (
-              <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'text-slate-900 border-b-2 border-slate-900' : 'text-slate-300'}`}>
-                {t === 'menu' ? 'Catálogo' : 'Explorar'}
-              </button>
-            ))}
-          </div>
-          {activeTab === 'menu' && (
-            <div className="px-4 py-3 bg-white">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Buscar en el menú..." className="w-full bg-slate-100 rounded-2xl py-3 pl-10 pr-10 text-sm font-medium outline-none focus:ring-2 focus:ring-slate-900/5 transition-all" />
-                {inputValue && <button onClick={() => setInputValue('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400"><X size={12}/></button>}
-              </div>
+        {/* Navegación de Tabs Sticky */}
+        {step === 1 && (
+          <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 space-y-3">
+            <div className="flex bg-slate-100/80 p-1 rounded-2xl">
+              {['menu', 'gallery'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === t
+                      ? 'bg-black text-slate-900 shadow-sm text-white'
+                      : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                >
+                  {t === 'menu' ? 'Catálogo' : 'Explorar'}
+                </button>
+              ))}
             </div>
-          )}
-        </div>
-      )}
 
-      <div className="max-w-xl mx-auto">
-        {step === 1 ? (
-          <PublicCatalog {...{
-            activeTab, 
-            data, // Aquí 'data.items' ya tiene el stock restado localmente
-            cart, 
-            updateQuantity, 
-            handleLike, 
-            likedPosts, 
-            currentPage, 
-            setCurrentPage, 
-            totalItems, 
-            searchQuery, 
-            isloading: loading, 
-            inputValue
-          }} />
-        ) : (
-          <PublicCart {...{
-            cartArray, 
-            updateQuantity, 
-            setStep, 
-            formData, 
-            setFormData, 
-            cartTotal, 
-            hasService, 
-            business: data.business, 
-            slug, 
-            setCart
-          }} />
+            {activeTab === 'menu' && (
+              <div className="relative group animate-in slide-in-from-top-2 duration-300">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" size={15} />
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Busca tu producto favorito..."
+                  className="w-full bg-slate-100 border-none rounded-2xl py-3 pl-11 pr-10 text-xs font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
+                />
+                {inputValue && (
+                  <button onClick={() => setInputValue('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-lg shadow-sm text-slate-400 hover:text-slate-900">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
+
+        {/* Contenido Principal */}
+        <main className="flex-1">
+          {step === 1 ? (
+            <PublicCatalog {...{
+              activeTab, data, cart, updateQuantity, handleLike, likedPosts,
+              currentPage, setCurrentPage, totalItems, searchQuery, isloading: loading, inputValue, setIsDetailModalOpen, setSelectedItem
+            }} />
+          ) : (
+            <PublicCart {...{
+              cartArray, updateQuantity, setStep, formData, setFormData,
+              cartTotal, hasService, business: data.business, slug, setCart
+            }} />
+          )}
+        </main>
+
+        {/* Botón Carrito Flotante (Diseño Premium) */}
+        {cartTotal > 0 && step === 1 && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-6 z-50">
+            <button
+              onClick={() => setStep(2)}
+              className="w-full bg-slate-900 text-white group p-2 pl-6 rounded-[2.5rem] flex items-center justify-between shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all duration-300"
+            >
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <ShoppingBag size={20} className="text-white" />
+                  <span className="absolute -top-1 -right-1 bg-white text-slate-900 text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                    {cartArray.length}
+                  </span>
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black uppercase text-white/40 leading-none mb-1">Tu orden</p>
+                  <p className="text-lg font-black italic tracking-tight">${cartTotal.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="bg-white/10 group-hover:bg-white/20 px-6 py-4 rounded-[2rem] flex items-center gap-2 transition-colors">
+                <span className="text-[11px] font-black uppercase tracking-widest">Revisar</span>
+                <ChevronRight size={14} strokeWidth={3} />
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Modales */}
+        <ServiceModal
+          isOpen={isServiceModalOpen}
+          onClose={() => setIsServiceModalOpen(false)}
+          item={selectedItem}
+          onConfirm={confirmService}
+        />
+
+        <ItemOptionsModal
+          isOpen={isOptionsModalOpen}
+          onClose={() => setIsOptionsModalOpen(false)}
+          cart={cart}
+          item={selectedItem}
+          onConfirm={confirmAddition}
+        />
       </div>
-
-      <ServiceModal 
-        isOpen={isServiceModalOpen} 
-        onClose={() => setIsServiceModalOpen(false)} 
-        item={selectedItem} 
-        onConfirm={confirmService} 
-      />
-
-      <ItemOptionsModal 
-        isOpen={isOptionsModalOpen} 
-        onClose={() => setIsOptionsModalOpen(false)} 
-        cart={cart}
-        item={selectedItem} // Recibe el stock actualizado desde el estado 'data.items'
-        onConfirm={confirmAddition} 
+      <ItemDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        item={selectedItem}
+        onAdd={updateQuantity}
       />
     </div>
   );

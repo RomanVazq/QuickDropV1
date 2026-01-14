@@ -1,37 +1,33 @@
 import React from 'react';
 
 export const Header = ({ data }) => {
-  // Extraemos la config o usamos valores por defecto
   const businessName = data.business?.name || "Negocio";
-  const primaryColor = data.business?.primary_color || "#ffffff"; 
+  const primaryColor = data.business?.primary_color || "#ffffff";
   const secondaryColor = data.business?.secundary_color || "#000000";
-  const logoUrl = data.business?.logo_url;
+  const bannerUrl = data.business?.banner_url || data.business?.logo_url;
 
   return (
-    <div className="flex items-center gap-4 p-6 pt-12 border-b border-slate-50 mb-6" style={{ backgroundColor: primaryColor }}>
-      <div 
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black italic shadow-lg overflow-hidden"
-        style={{ backgroundColor: primaryColor }} // Estilo dinámico
-      >
-        {logoUrl ? (
-          <img 
-            src={logoUrl} 
-            alt={businessName} 
-            className="w-full h-full object-cover"
+    <div className="relative w-full h-[340px] overflow-hidden rounded-b-[3.5rem] shadow-2xl bg-slate-200">
+      <img
+        src={bannerUrl}
+        alt={businessName}
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/40" />
+
+      <div className="absolute top-12 left-0 right-0 flex justify-center z-20">
+        <div className="relative px-8 py-2.5 overflow-hidden rounded-full border border-white/20 shadow-2xl">
+          <div 
+            className="absolute inset-0 backdrop-blur-xl opacity-90"
+            style={{ backgroundColor: `${primaryColor}80` }} // 80 es aprox 50% de opacidad para mejor contraste
           />
-        ) : (
-          businessName.charAt(0)
-        )}
-      </div>
-      
-      <div>
-        <h1 className="text-xl font-black  uppercase " style={{ color: secondaryColor }}>
-          {businessName}
-        </h1>
-        <p className="text-slate-400 text-[10px] font-bold uppercase flex items-center gap-1" style={{color: secondaryColor}}>
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" ></span> 
-          Tienda verificada
-        </p>
+          <h2 
+            className="relative z-10 text-[10px] font-black uppercase tracking-[0.4em] whitespace-nowrap italic"
+            style={{ color: secondaryColor }}
+          >
+            {businessName}
+          </h2>
+        </div>
       </div>
     </div>
   );
