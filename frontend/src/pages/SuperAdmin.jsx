@@ -110,7 +110,7 @@ const SuperAdmin = () => {
         {/* CHARTS SECTION */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-            <h3 className="font-black uppercase text-xs text-slate-400 mb-6 tracking-widest">Crecimiento de Negocios</h3>
+            <h3 className="font-black uppercase text-xs text-slate-400 mb-6 tracking-widest">Creditos restantes de Negocios</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tenants.slice(0, 7)}>
@@ -124,15 +124,18 @@ const SuperAdmin = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest">Estado del Servidor</h3>
-              <ArrowUpRight className="text-slate-300" size={20} />
-            </div>
-            <div className="space-y-4">
-              <StatusIndicator label="Base de Datos" status="Excelente" value="99%" />
-              <StatusIndicator label="Storage (Supabase)" status="Normal" value="45%" />
-              <StatusIndicator label="Latencia API" status="Baja" value="120ms" />
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <h3 className="font-black uppercase text-xs text-slate-400 mb-6 tracking-widest">Pedidos totales por negocio</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={tenants.slice(0, 7)}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} fontSize={10} />
+                  <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                  <Bar dataKey="total_orders" fill="#0f172a" radius={[6, 6, 0, 0]} barSize={30} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -142,12 +145,12 @@ const SuperAdmin = () => {
         >
           <Plus size={16} /> Nuevo Negocio
         </button>
-      {isCreateModalOpen && (
-        <CreateTenantModal 
-          isOpen={isCreateModalOpen} 
-          onClose={() => { setIsCreateModalOpen(false); onRefresh(); }} 
-        />
-      )}
+        {isCreateModalOpen && (
+          <CreateTenantModal
+            isOpen={isCreateModalOpen}
+            onClose={() => { setIsCreateModalOpen(false); onRefresh(); }}
+          />
+        )}
         <UserManagement />
         {/* TENANTS TABLE */}
         <TenantManagement tenants={tenants} onRefresh={onRefresh} />
