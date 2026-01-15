@@ -218,7 +218,7 @@ const PublicShop = () => {
                 className="text-[15px] font-bold uppercase tracking-[0.4em] ml-1"
                 style={{
                   color: utils.get_primary_color(data),
-                  textShadow: `1px 1px 0px ${utils.get_secondary_color(data)}` 
+                  textShadow: `1px 1px 0px ${utils.get_secondary_color(data)}`
                 }}
               >
                 Bienvenido a
@@ -226,17 +226,17 @@ const PublicShop = () => {
               <h1
                 className="text-5xl md:text-6xl font-black uppercase tracking-tighter italic leading-[0.85]"
                 style={{
-                  color: utils.get_primary_color(data), 
-                  WebkitTextStroke: `2px ${utils.get_secondary_color(data)}`, 
+                  color: utils.get_primary_color(data),
+                  WebkitTextStroke: `2px ${utils.get_secondary_color(data)}`,
                   paintOrder: 'stroke fill',
-                  filter: 'drop-shadow(4px 4px 2px rgba(0,0,0,0.2))' 
+                  filter: 'drop-shadow(4px 4px 2px rgba(0,0,0,0.2))'
                 }}
               >
                 {data.business?.name || "Tienda Premium"}
               </h1>
             </div>
             <br />
-            <br />
+
             <div className="flex bg-slate-100/80 p-1 rounded-2xl">
               {['menu', 'gallery'].map(t => (
                 <button
