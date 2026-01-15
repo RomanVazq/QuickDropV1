@@ -11,9 +11,9 @@ const LandingPage = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
             {/* LOGO OFICIAL */}
-            <img 
-              src={logo} 
-              alt="QuickDrop Logo" 
+            <img
+              src={logo}
+              alt="QuickDrop Logo"
               className="w-10 h-10  object-cover shadow-lg border border-slate-100 rotate-3"
             />
             <span className="text-2xl font-black tracking-tighter uppercase text-slate-900">
@@ -25,8 +25,8 @@ const LandingPage = () => {
           <a href="#features" className="hover:text-teal-500 transition-colors">Características</a>
           <a href="#pricing" className="hover:text-teal-500 transition-colors">Precios</a>
         </div>
-        <Link 
-          to="/login" 
+        <Link
+          to="/login"
           className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-teal-500 transition-all active:scale-95 shadow-[6px_6px_0px_0px_rgba(79,209,197,0.4)]"
         >
           Entrar
@@ -35,22 +35,22 @@ const LandingPage = () => {
 
       {/* HERO SECTION */}
       <header className="relative px-6 pt-20 pb-32 max-w-7xl mx-auto text-center">
-          <span className="inline-block bg-teal-50 text-teal-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-teal-100">
-            MENÚ DIGITAL PROFESIONAL ¡ ÚNETE YA !
-          </span>
-          <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter uppercase italic mb-8 text-slate-900">
-            Vende por <span className="text-teal-500 drop-shadow-sm">WhatsApp</span> <br />
-            sin comisiones
-          </h1>
-          <p className="max-w-2xl mx-auto text-lg text-slate-500 font-medium mb-10 leading-relaxed">
-            Catálogo digital inteligente para negocios que no tienen tiempo que perder. <br/>
-            Recibe pedidos listos para entregar en tu chat.
-          </p>
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <button className="bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black uppercase flex items-center justify-center gap-3 hover:scale-105 transition-transform shadow-2xl">
-              Crear mi catálogo <ArrowRight size={20} className="text-teal-400" />
-            </button>
-          </div>
+        <span className="inline-block bg-teal-50 text-teal-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-teal-100">
+          MENÚ DIGITAL PROFESIONAL ¡ ÚNETE YA !
+        </span>
+        <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter uppercase italic mb-8 text-slate-900">
+          Vende por <span className="text-teal-500 drop-shadow-sm">WhatsApp</span> <br />
+          sin comisiones
+        </h1>
+        <p className="max-w-2xl mx-auto text-lg text-slate-500 font-medium mb-10 leading-relaxed">
+          Catálogo digital inteligente para negocios que no tienen tiempo que perder. <br />
+          Recibe pedidos listos para entregar en tu chat.
+        </p>
+        <div className="flex flex-col md:flex-row gap-4 justify-center">
+          <button className="bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black uppercase flex items-center justify-center gap-3 hover:scale-105 transition-transform shadow-2xl">
+            Crear mi catálogo <ArrowRight size={20} className="text-teal-400" />
+          </button>
+        </div>
       </header>
 
       {/* PRICING SECTION */}
@@ -62,7 +62,7 @@ const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            
+
             {/* PLAN POR CRÉDITOS */}
             <div className="bg-white border-2 border-slate-200 p-8 rounded-[40px] shadow-[12px_12px_0px_0px_rgba(30,41,59,0.05)] flex flex-col relative group hover:border-teal-500 transition-all">
               <div className="absolute top-6 right-6 text-teal-500">
@@ -70,7 +70,7 @@ const LandingPage = () => {
               </div>
               <h3 className="text-3xl font-black uppercase italic mb-2">Emprendedor</h3>
               <p className="text-slate-400 font-bold text-xs mb-6 uppercase tracking-widest">Ideal para iniciar</p>
-              
+
               <div className="mb-8">
                 <span className="text-5xl font-black text-slate-900">$0</span>
                 <span className="text-slate-400 font-bold ml-2 italic text-sm">MXN /mes</span>
@@ -104,7 +104,7 @@ const LandingPage = () => {
               </div>
               <h3 className="text-3xl font-black uppercase italic mb-2">PREMIUM</h3>
               <p className="text-teal-600 font-bold text-xs mb-6 uppercase tracking-widest">Negocios con flujo</p>
-              
+
               <div className="mb-8 text-slate-900">
                 <span className="text-5xl font-black">$350</span>
                 <span className="font-bold ml-2 italic text-slate-400 text-sm">MXN /mes</span>
@@ -135,13 +135,25 @@ const LandingPage = () => {
       {/* FEATURES MINI */}
       <section id="features" className="py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16">
         {[
-          { icon: <Smartphone size={32} />, title: "Catálogo Móvil", desc: "Tus clientes ven tus productos de forma fluida en cualquier dispositivo." },
-          { icon: <MessageCircle size={32} />, title: "WhatsApp Sync", desc: "Recibe el carrito de compras estructurado directamente en tu chat." },
-          { icon: <ShieldCheck size={32} />, title: "Tú tienes el control", desc: "Sin intermediarios. Los pagos van directo a tu bolsillo." }
+          {
+            icon: <Smartphone size={32} className="text-orange-500" />,
+            title: "Diseño Responsivo",
+            desc: "Adapta tu catálogo a cualquier dispositivo con un diseño que se ajusta perfectamente a tu pantalla."
+          },
+          {
+            icon: <MessageCircle size={32} className="text-emerald-500" />,
+            title: "Ventas a un Clic",
+            desc: "Cero fricción: recibe pedidos listos para cobrar directamente en tu WhatsApp, con todos los detalles y variantes."
+          },
+          {
+            icon: <ShieldCheck size={32} className="text-blue-500" />,
+            title: "Control Total 360°",
+            desc: "Gestiona tu inventario, analiza tus métricas de éxito y personaliza la identidad de tu marca desde un solo lugar."
+          }
         ].map((feat, i) => (
           <div key={i} className="flex flex-col items-center text-center group">
             <div className="bg-teal-50 text-teal-500 p-5 rounded-[2rem] mb-6 group-hover:bg-slate-900 group-hover:text-teal-400 transition-all duration-300">
-                {feat.icon}
+              {feat.icon}
             </div>
             <h4 className="text-xl font-black uppercase italic mb-2 tracking-tighter">{feat.title}</h4>
             <p className="text-slate-400 text-sm font-medium leading-relaxed">{feat.desc}</p>
@@ -152,8 +164,8 @@ const LandingPage = () => {
       {/* FOOTER */}
       <footer className="py-12 border-t border-slate-100 text-center bg-white">
         <div className="flex justify-center items-center gap-3 mb-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-            <img src={logo} alt="" className="w-6 h-6 rounded-md object-cover" />
-            <span className="text-sm font-black uppercase tracking-tighter">QuickDrop</span>
+          <img src={logo} alt="" className="w-6 h-6 rounded-md object-cover" />
+          <span className="text-sm font-black uppercase tracking-tighter">QuickDrop</span>
         </div>
         <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-300">
           © 2026 SAAS PARA COMERCIO LOCAL, ¡YA!
