@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Phone, Globe, ArrowRight, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
@@ -7,33 +7,52 @@ export const AccountSettings = ({ data }) => {
   const [activeTab, setActiveTab] = useState('identity');
   const [loading, setLoading] = useState(false);
 
+  // 1. Estados iniciales limpios
   const [profile, setProfile] = useState({
-    name: data?.business?.name || '',
-    phone: data?.business?.phone || '',
-    slug: data?.business?.slug || '',
-    appointment_interval: data?.business?.appointment_interval || 30
+    name: '',
+    phone: '',
+    slug: '',
+    appointment_interval: 30
   });
 
-  const [hours, setHours] = useState(data?.business?.hours || [
-    { day: 'Lunes', id: 1, open: '09:00', close: '21:00', closed: false },
-    { day: 'Martes', id: 2, open: '09:00', close: '21:00', closed: false },
-    { day: 'Miércoles', id: 3, open: '09:00', close: '21:00', closed: false },
-    { day: 'Jueves', id: 4, open: '09:00', close: '21:00', closed: false },
-    { day: 'Viernes', id: 5, open: '09:00', close: '22:00', closed: false },
-    { day: 'Sábado', id: 6, open: '10:00', close: '23:00', closed: false },
-    { day: 'Domingo', id: 0, open: '00:00', close: '00:00', closed: true },
-  ]);
+  const [hours, setHours] = useState([]);
+
+  // 2. EFECTO CLAVE: Sincronizar cuando 'data' cambie
+  useEffect(() => {
+    if (data) {
+      // Ajuste de perfil (quitamos el anidamiento innecesario si data ya es el objeto)
+      setProfile({
+        name: data.name || '',
+        phone: data.phone || '',
+        slug: data.slug || '',
+        appointment_interval: data.appointment_interval || 30
+      });
+
+      if (data.business_hours) {
+        const daysMap = {
+          1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 
+          4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo'
+        };
+        
+        const formatted = data.business_hours.map(bh => ({
+          id: bh.day_of_week,
+          day: daysMap[bh.day_of_week],
+          open: bh.open_time,
+          close: bh.close_time,
+          closed: bh.is_closed
+        }));
+
+        // Ordenar para que aparezca de Lunes a Domingo
+        const sorted = formatted.sort((a, b) => (a.id === 0 ? 7 : a.id) - (b.id === 0 ? 7 : b.id));
+        setHours(sorted);
+      }
+    }
+  }, [data]);
 
   const handleGlobalSave = async () => {
     setLoading(true);
     try {
-      await api.patch('/business/profile', {
-        name: profile.name,
-        slug: profile.slug,
-        phone: profile.phone,
-        appointment_interval: profile.appointment_interval || 30
-      });
-
+      await api.patch('/business/profile', profile);
       const hoursPayload = {
         hours: hours.map(h => ({
           day_of_week: h.id,
@@ -43,140 +62,126 @@ export const AccountSettings = ({ data }) => {
         }))
       };
       await api.post('/business/hours', hoursPayload);
-
-      toast.success("Información actualizada correctamente");
+      toast.success("Información actualizada");
     } catch (error) {
-      const msg = error.response?.data?.detail || "Error al actualizar";
-      toast.error(msg);
+      toast.error(error.response?.data?.detail || "Error al actualizar");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  // 3. Renderizado condicional si no hay datos todavía
+  if (!hours.length && !profile.name) {
+      return (
+          <div className="flex justify-center p-20">
+              <Loader2 className="animate-spin text-blue-600" />
+          </div>
+      );
+  }
 
-      {/* HEADER AZUL PREMIUM (El que pediste mantener) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900 backdrop-blur-md p-6 rounded-[2.5rem] border border-blue-100 shadow-sm">
-        <div>
-          <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-             Ajustes del Negocio
+  return (
+    <div className="max-w-5xl mx-auto p-3 md:p-6 space-y-6 animate-in fade-in duration-500">
+      {/* HEADER */}
+      <div className="bg-slate-900 p-6 md:p-8 rounded-[2rem] border border-blue-900/30 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="text-center md:text-left">
+          <h1 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+             Ajustes
           </h1>
-          <p className="text-blue-400 text-xs font-bold uppercase tracking-widest mt-1">Gestiona tu presencia digital</p>
+          <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">Negocio: {profile.name}</p>
         </div>
 
-        <div className="flex bg-blue-100/50 p-1.5 rounded-2xl w-fit border border-blue-200">
-          <button
-            onClick={() => setActiveTab('identity')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'identity' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-blue-400 hover:text-blue-600'}`}
-          >
-            <User size={14} /> Identidad
-          </button>
-          <button
-            onClick={() => setActiveTab('hours')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'hours' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-blue-400 hover:text-blue-600'}`}
-          >
-            <Clock size={14} /> Disponibilidad
-          </button>
+        <div className="flex bg-white/5 p-1 rounded-2xl w-full md:w-auto border border-white/10">
+          {['identity', 'hours'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 md:flex-none md:px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                activeTab === tab ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {tab === 'identity' ? 'Identidad' : 'Horarios'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* CUERPO ORIGINAL (Diseño Slate) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 space-y-6">
           {activeTab === 'identity' ? (
-            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                    <User size={12} /> Nombre Comercial
-                  </label>
+            <div className="bg-white rounded-[2rem] p-6 md:p-8 border border-slate-100 shadow-sm space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Nombre Comercial" icon={<User size={12}/>}>
                   <input
                     type="text"
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-slate-900 transition-all"
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-xl py-3 px-4 text-sm font-bold focus:border-blue-600 outline-none transition-all"
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                    <Phone size={12} /> WhatsApp (Con código de país)
-                  </label>
+                </Field>
+                <Field label="WhatsApp" icon={<Phone size={12}/>}>
                   <input
                     type="tel"
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-slate-900 transition-all"
-                    placeholder="5212223334444"
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-xl py-3 px-4 text-sm font-bold focus:border-blue-600 outline-none transition-all"
+                  />
+                </Field>
+              </div>
+
+              <Field label="URL Personalizada" icon={<Globe size={12}/>}>
+                <div className="flex items-center bg-slate-50 rounded-xl overflow-hidden border-2 border-transparent focus-within:border-blue-600 transition-all">
+                  <span className="px-4 text-slate-400 text-[10px] font-black uppercase border-r border-slate-200">quickdrop.com/</span>
+                  <input
+                    type="text"
+                    value={profile.slug}
+                    onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                    className="w-full bg-transparent py-3 px-4 text-sm font-bold outline-none"
                   />
                 </div>
+              </Field>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                    <Globe size={12} /> Slug de tu Menú
-                  </label>
-                  <div className="flex items-center bg-slate-50 rounded-2xl px-6 focus-within:ring-2 focus-within:ring-slate-900 transition-all">
-                    <span className="text-slate-400 text-xs font-bold whitespace-nowrap">quickdrop.com/</span>
-                    <input
-                      type="text"
-                      value={profile.slug}
-                      onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                      className="w-full bg-transparent border-none py-4 px-1 text-sm font-bold focus:ring-0"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                    <Clock size={12} /> Duración de cada cita
-                  </label>
-                  <select
-                    value={profile.appointment_interval || 30}
-                    onChange={(e) => setProfile({ ...profile, appointment_interval: parseInt(e.target.value) })}
-                    className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-slate-900 transition-all appearance-none cursor-pointer"
-                  >
-                    <option value={15}>15 minutos</option>
-                    <option value={30}>30 minutos</option>
-                    <option value={45}>45 minutos</option>
-                    <option value={60}>1 hora</option>
-                  </select>
-                </div>
-              </div>
+              <Field label="Intervalo de Citas" icon={<Clock size={12}/>}>
+                <select
+                  value={profile.appointment_interval}
+                  onChange={(e) => setProfile({ ...profile, appointment_interval: parseInt(e.target.value) })}
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-xl py-3 px-4 text-sm font-bold focus:border-blue-600 outline-none transition-all cursor-pointer"
+                >
+                  {[15, 30, 45, 60].map(val => (
+                    <option key={val} value={val}>{val === 60 ? '1 hora' : `${val} minutos`}</option>
+                  ))}
+                </select>
+              </Field>
             </div>
           ) : (
-            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-3">
+            /* LISTADO DE HORARIOS */
+            <div className="bg-white rounded-[2rem] p-4 md:p-6 border border-slate-100 shadow-sm space-y-2">
               {hours.map((item, index) => (
-                <div key={index} className={`flex items-center justify-between p-4 rounded-3xl transition-all ${item.closed ? 'bg-slate-50 opacity-50' : 'bg-slate-50'}`}>
-                  <span className="text-[10px] font-black uppercase w-20 text-slate-900">{item.day}</span>
-                  <div className="flex items-center gap-2">
+                <div key={index} className={`flex items-center justify-between p-3 rounded-xl transition-all ${item.closed ? 'bg-slate-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                  <span className="text-[10px] font-black uppercase text-slate-900 w-16 md:w-24">{item.day}</span>
+                  
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-100">
                     <input
                       type="time"
                       disabled={item.closed}
-                      className="bg-white border-none rounded-xl text-[11px] font-black p-2 shadow-sm focus:ring-1 focus:ring-slate-900"
                       value={item.open}
-                      onChange={(e) => {
-                        const n = [...hours]; n[index].open = e.target.value; setHours(n);
-                      }}
+                      onChange={(e) => { const n = [...hours]; n[index].open = e.target.value; setHours(n); }}
+                      className="bg-transparent text-[11px] font-black outline-none disabled:opacity-30"
                     />
                     <span className="text-slate-300">-</span>
                     <input
                       type="time"
                       disabled={item.closed}
-                      className="bg-white border-none rounded-xl text-[11px] font-black p-2 shadow-sm focus:ring-1 focus:ring-slate-900"
                       value={item.close}
-                      onChange={(e) => {
-                        const n = [...hours]; n[index].close = e.target.value; setHours(n);
-                      }}
+                      onChange={(e) => { const n = [...hours]; n[index].close = e.target.value; setHours(n); }}
+                      className="bg-transparent text-[11px] font-black outline-none disabled:opacity-30"
                     />
                   </div>
+
                   <button
-                    onClick={() => {
-                      const n = [...hours]; n[index].closed = !n[index].closed; setHours(n);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${item.closed ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}
+                    onClick={() => { const n = [...hours]; n[index].closed = !n[index].closed; setHours(n); }}
+                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${item.closed ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}
                   >
-                    {item.closed ? 'Cerrado' : 'Abierto'}
+                    {item.closed ? 'OFF' : 'ON'}
                   </button>
                 </div>
               ))}
@@ -184,43 +189,45 @@ export const AccountSettings = ({ data }) => {
           )}
         </div>
 
-        {/* SIDEBAR ORIGINAL (Slate/Dark) */}
-        <div className="space-y-6">
-          <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl">
-            <h4 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-400" /> Tips QuickDrop
-            </h4>
-            <ul className="space-y-4">
-              <li className="text-[11px] font-bold text-slate-400 leading-relaxed">
-                Usa un <span className="text-white">slug corto</span> y fácil de recordar para tus redes sociales.
-              </li>
-              <li className="text-[11px] font-bold text-slate-400 leading-relaxed">
-                Mantén tu <span className="text-white">WhatsApp</span> actualizado con el código de país.
-              </li>
-              <li className="text-[11px] font-bold text-slate-400 leading-relaxed">
-                Si cierras por festivos, usa el botón <span className="text-white">"Abierto/Cerrado"</span> para pausar pedidos.
-              </li>
-            </ul>
-          </div>
-
+        {/* COLUMNA LATERAL */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
           <button
             onClick={handleGlobalSave}
             disabled={loading}
-            className="group w-full py-6 bg-slate-900 text-white rounded-[2rem] font-bold text-sm tracking-wide shadow-2xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:bg-slate-300"
+            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:bg-slate-200"
           >
-            {loading ? (
-              <Loader2 size={20} className="animate-spin text-white" />
-            ) : (
-              <>
-                <span>Guardar Cambios</span>
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <>Actualizar <ArrowRight size={14}/></>}
           </button>
+
+          <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl">
+            <h4 className="text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2 text-blue-400">
+              <CheckCircle2 size={14} /> Tips QuickDrop
+            </h4>
+            <ul className="space-y-3">
+              <Tip>Usa un <b className="text-white">slug corto</b> para tus redes.</Tip>
+              <Tip>Valida tu <b className="text-white">WhatsApp</b> con lada.</Tip>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+const Field = ({ label, icon, children }) => (
+  <div className="space-y-1.5">
+    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+      {icon} {label}
+    </label>
+    {children}
+  </div>
+);
+
+const Tip = ({ children }) => (
+  <li className="text-[11px] font-medium text-slate-400 leading-snug flex gap-2">
+    <span className="text-blue-500">•</span>
+    <span>{children}</span>
+  </li>
+);
 
 export default AccountSettings;

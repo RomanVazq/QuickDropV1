@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useParams } from 'react-router-dom';
 
-const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, businessData }) => {
+const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interval }) => {
   const { slug } = useParams();
   const [selectedDate, setSelectedDate] = useState('');
   const [busyTimes, setBusyTimes] = useState([]);
@@ -10,7 +10,7 @@ const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, busines
   const [availableSlots, setAvailableSlots] = useState([]);
 
   // Tomamos el intervalo del negocio, por defecto 30 si no existe
-  const interval = businessData?.appointment_interval || 30;
+  const interval_ = interval || 30;
 
   const generateSlots = (openStr, closeStr, intervalMins) => {
     const slots = [];
@@ -46,7 +46,7 @@ const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, busines
 
       if (dayConfig && !dayConfig.is_closed) {
         // Generamos slots usando el intervalo dinámico
-        let slots = generateSlots(dayConfig.open_time, dayConfig.close_time, interval);
+        let slots = generateSlots(dayConfig.open_time, dayConfig.close_time, interval_);
 
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
@@ -66,7 +66,7 @@ const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, busines
         setBusyTimes([]);
       }
     }
-  }, [selectedDate, businessHours, interval]);
+  }, [selectedDate, businessHours, interval_]);
 
   const fetchBusyTimes = async () => {
     setLoadingTimes(true);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
-import { Camera, Palette, Save, ArrowLeft, Settings } from 'lucide-react';
+import { Camera, Palette, Save, ArrowLeft, Settings, Loader2 } from 'lucide-react';
 import { AccountSettings } from '../components/dashboard/accountSettings';
 
 export const ConfigBusiness = () => {
@@ -14,9 +14,11 @@ export const ConfigBusiness = () => {
     logo_url: '',
     slug: '',
     phone: '',
+    appointment_interval: 30,
+    business_hours: [] // Aseguramos que inicie como array
   });
   const [name, setName] = useState('');
-  const [view, setView] = useState('appearance'); // 'appearance' o 'settings'
+  const [view, setView] = useState('appearance');
 
   useEffect(() => {
     const loadData = async () => {
@@ -28,9 +30,13 @@ export const ConfigBusiness = () => {
           logo_url: data.logo_url || '',
           slug: data.slug || '',
           phone: data.phone || '',
+          appointment_interval: data.appointment_interval || 30,
+          business_hours: data.business_hours || [] // Aquí vienen los horarios del backend
         });
         setName(data.name || '');
-      } catch (err) { console.error(err); }
+      } catch (err) { 
+        console.error(err); 
+      }
     };
     loadData();
   }, []);
@@ -82,7 +88,7 @@ export const ConfigBusiness = () => {
       </div>
 
       {view === 'settings' ? (
-        <AccountSettings data={{ business: { ...config, name } }} />
+        <AccountSettings data={{ ...config, name }} />
       ) : (
         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 animate-in fade-in zoom-in-95 duration-500">
           <div className="flex items-center gap-3 mb-8">
@@ -125,7 +131,7 @@ export const ConfigBusiness = () => {
               </div>
             </div>
 
-            {/* CONTROLES */}
+            {/* CONTROLES DE COLOR E IMAGEN */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
@@ -161,9 +167,9 @@ export const ConfigBusiness = () => {
             </div>
 
             <button onClick={handleUpdate} disabled={loading}
-              className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? "Procesando..." : "Guardar Estilo Visual"}
+              {loading ? <Loader2 className="animate-spin" size={16}/> : "Guardar Estilo Visual"}
             </button>
           </div>
         </div>

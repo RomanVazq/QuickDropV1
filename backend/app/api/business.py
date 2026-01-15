@@ -151,7 +151,18 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
         "wallet": {"balance": wallet.balance if wallet else 0},
         "primary_color": tenant.primary_color,
         "secundary_color": tenant.secundary_color,
-        "logo_url": tenant.logo_url
+        "logo_url": tenant.logo_url,
+        "phone": tenant.phone,
+        "is_active": tenant.is_active,
+        "appointment_interval": tenant.appointment_interval,
+        "business_hours": [
+            {
+                "day_of_week": bh.day_of_week,
+                "open_time": bh.open_time,
+                "close_time": bh.close_time,
+                "is_closed": bh.is_closed
+            } for bh in tenant.business_hours
+        ]
     }
 
 @router.get("/items")
