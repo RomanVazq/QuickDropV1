@@ -121,6 +121,21 @@ def get_tenants_transactions(
     db: Session = Depends(get_db), 
     admin = Depends(get_super_user)
 ):
-    transactions = db.query(base.WalletTransaction).order_by(base.WalletTransaction.created_at.desc()).all()
-    return transactions
+    transactions = (
+        db.query(base.WalletTransaction)
+        .join(base.Tenant)
+        .order_by(base.WalletTransaction.created_at.desc())
+        .all()
+    )
+    results = []
+    for t in transactions:
+        results.append({
+            "id": t.id,
+            "amount": t.amount,
+            "created_at": t.created_at,
+            "tenant_name": t.tenant.name,
+            "reason": t.reason
+        })
+        
+    return results  
    
