@@ -51,7 +51,7 @@ const Dashboard = () => {
   const [file, setFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-
+  const [postContent, setPostContent] = useState('');
   // Efecto para búsqueda y paginación con Debounce
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -71,7 +71,7 @@ const Dashboard = () => {
       setItems(itemsRes.data.items || []);
       setTotalItems(itemsRes.data.total || 0);
       setBusiness(meRes.data);
-      
+
       const postsRes = await api.get('/social/my-posts');
       setPosts(Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.items || []));
     } catch (err) {
@@ -121,7 +121,7 @@ const Dashboard = () => {
     } catch (err) { toast.error("Error al eliminar"); }
   };
 
- const handleDeletePost = async (postId) => {
+  const handleDeletePost = async (postId) => {
     if (!window.confirm("¿Eliminar esta publicación?")) return;
     try {
       await api.delete(`/social/posts/${postId}`);
@@ -130,7 +130,7 @@ const Dashboard = () => {
     } catch (err) {
       toast.error("Error al eliminar la publicación");
     }
-  }; 
+  };
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] p-4 md:p-10 font-sans text-slate-900">
@@ -155,101 +155,101 @@ const Dashboard = () => {
 
         {activeTab === 'orders' ? <OrdersDashboard /> :
           activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> :
-          activeTab === 'profile' ? <ConfigBusiness /> : (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              
-              {/* STATS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                  <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Balance</p>
-                  <p className="text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
-                </div>
-                <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                  <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Catálogo</p>
-                  <p className="text-4xl font-black italic text-slate-900">{totalItems} <span className="text-sm not-italic opacity-30">ITEMS</span></p>
-                </div>
-              </div>
+            activeTab === 'profile' ? <ConfigBusiness /> : (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-              {/* BARRA DE BÚSQUEDA */}
-              <div className="mb-6">
-                <div className="relative group">
-                  <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${inputValue ? 'text-slate-900' : 'text-slate-400'}`} size={18} />
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => { setInputValue(e.target.value); setCurrentPage(0); }}
-                    placeholder="Buscar producto o servicio..."
-                    className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-12 pr-12 text-sm font-bold shadow-sm focus:ring-2 focus:ring-slate-900/5 transition-all outline-none"
-                  />
-                  {inputValue && (
-                    <button onClick={() => setInputValue('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-slate-100 rounded-full hover:text-red-500"><X size={14} /></button>
-                  )}
-                </div>
-              </div>
-
-              {/* TABLA */}
-              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100">
-                      <tr>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Producto</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center tracking-widest">Info</th>
-                        <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right tracking-widest">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {loading ? (
-                        [...Array(limit)].map((_, i) => (
-                          <tr key={i} className="animate-pulse">
-                            <td className="px-8 py-6"><div className="h-14 w-14 bg-slate-100 rounded-2xl" /></td>
-                            <td colSpan="2"></td>
-                          </tr>
-                        ))
-                      ) : items.length === 0 ? (
-                        <tr><td colSpan="3" className="py-20 text-center opacity-20 font-black uppercase italic">No se encontraron resultados</td></tr>
-                      ) : (
-                        items.map(item => (
-                          <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
-                            <td className="px-8 py-6 flex items-center gap-4">
-                              <img src={item.image_url  } className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" />
-                              <div>
-                                <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
-                                <p className="text-teal-500 font-black text-sm mt-1">${item.price}</p>
-                              </div>
-                            </td>
-                            <td className="px-8 py-6 text-center">
-                              <div className="flex justify-center gap-1">
-                                {item.is_service ? 
-                                  <span className="text-[9px] font-black px-2 py-1 bg-teal-50 text-teal-600 rounded-md uppercase">Servicio</span> :
-                                  <span className="text-[9px] font-black px-2 py-1 bg-orange-50 text-orange-600 rounded-md uppercase">Stock: {item.stock}</span>
-                                }
-                              </div>
-                            </td>
-                            <td className="px-8 py-6 text-right">
-                              <div className="flex justify-end gap-2">
-                                <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-all"><Pencil size={18} /></button>
-                                <button onClick={() => handleDelete(item.id)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all"><Trash2 size={18} /></button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                {/* STATS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                    <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Balance</p>
+                    <p className="text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
+                  </div>
+                  <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                    <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Catálogo</p>
+                    <p className="text-4xl font-black italic text-slate-900">{totalItems} <span className="text-sm not-italic opacity-30">ITEMS</span></p>
+                  </div>
                 </div>
 
-                {/* PAGINACIÓN */}
-                <div className="flex justify-between items-center px-8 py-6 bg-slate-50/50 border-t border-slate-100">
-                  <p className="text-[10px] font-black uppercase text-slate-400">Página {currentPage + 1} de {Math.ceil(totalItems/limit) || 1}</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => setCurrentPage(p => Math.max(0, p-1))} disabled={currentPage === 0} className="p-2 bg-white rounded-xl border border-slate-100 disabled:opacity-30"><ChevronLeft size={18}/></button>
-                    <button onClick={() => setCurrentPage(p => p+1)} disabled={(currentPage + 1) * limit >= totalItems} className="p-2 bg-white rounded-xl border border-slate-100 disabled:opacity-30"><ChevronRight size={18}/></button>
+                {/* BARRA DE BÚSQUEDA */}
+                <div className="mb-6">
+                  <div className="relative group">
+                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${inputValue ? 'text-slate-900' : 'text-slate-400'}`} size={18} />
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => { setInputValue(e.target.value); setCurrentPage(0); }}
+                      placeholder="Buscar producto o servicio..."
+                      className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-12 pr-12 text-sm font-bold shadow-sm focus:ring-2 focus:ring-slate-900/5 transition-all outline-none"
+                    />
+                    {inputValue && (
+                      <button onClick={() => setInputValue('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-slate-100 rounded-full hover:text-red-500"><X size={14} /></button>
+                    )}
+                  </div>
+                </div>
+
+                {/* TABLA */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Producto</th>
+                          <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center tracking-widest">Info</th>
+                          <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right tracking-widest">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {loading ? (
+                          [...Array(limit)].map((_, i) => (
+                            <tr key={i} className="animate-pulse">
+                              <td className="px-8 py-6"><div className="h-14 w-14 bg-slate-100 rounded-2xl" /></td>
+                              <td colSpan="2"></td>
+                            </tr>
+                          ))
+                        ) : items.length === 0 ? (
+                          <tr><td colSpan="3" className="py-20 text-center opacity-20 font-black uppercase italic">No se encontraron resultados</td></tr>
+                        ) : (
+                          items.map(item => (
+                            <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
+                              <td className="px-8 py-6 flex items-center gap-4">
+                                <img src={item.image_url} className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" />
+                                <div>
+                                  <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
+                                  <p className="text-teal-500 font-black text-sm mt-1">${item.price}</p>
+                                </div>
+                              </td>
+                              <td className="px-8 py-6 text-center">
+                                <div className="flex justify-center gap-1">
+                                  {item.is_service ?
+                                    <span className="text-[9px] font-black px-2 py-1 bg-teal-50 text-teal-600 rounded-md uppercase">Servicio</span> :
+                                    <span className="text-[9px] font-black px-2 py-1 bg-orange-50 text-orange-600 rounded-md uppercase">Stock: {item.stock}</span>
+                                  }
+                                </div>
+                              </td>
+                              <td className="px-8 py-6 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-all"><Pencil size={18} /></button>
+                                  <button onClick={() => handleDelete(item.id)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl transition-all"><Trash2 size={18} /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PAGINACIÓN */}
+                  <div className="flex justify-between items-center px-8 py-6 bg-slate-50/50 border-t border-slate-100">
+                    <p className="text-[10px] font-black uppercase text-slate-400">Página {currentPage + 1} de {Math.ceil(totalItems / limit) || 1}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0} className="p-2 bg-white rounded-xl border border-slate-100 disabled:opacity-30"><ChevronLeft size={18} /></button>
+                      <button onClick={() => setCurrentPage(p => p + 1)} disabled={(currentPage + 1) * limit >= totalItems} className="p-2 bg-white rounded-xl border border-slate-100 disabled:opacity-30"><ChevronRight size={18} /></button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
       </div>
 
       {/* MODAL PRODUCTO */}
@@ -271,21 +271,21 @@ const Dashboard = () => {
             <form onSubmit={handleProductSubmit} className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-4">
-                  <input type="text" placeholder="Nombre" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required />
-                  <textarea placeholder="Descripción detallada..." className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900 min-h-[80px] resize-none" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+                  <input type="text" placeholder="Nombre" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} required />
+                  <textarea placeholder="Descripción detallada..." className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900 min-h-[80px] resize-none" value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-black uppercase text-slate-400 ml-2">Precio Base</p>
-                  <input type="number" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} required />
+                  <input type="number" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} required />
                 </div>
                 <div className={`space-y-1 transition-opacity ${newProduct.is_service ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                   <p className="text-[10px] font-black uppercase text-slate-400 ml-2">Stock</p>
-                  <input type="number" placeholder="0" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} disabled={newProduct.is_service} />
+                  <input type="number" placeholder="0" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} disabled={newProduct.is_service} />
                 </div>
                 <div className="col-span-2">
                   <label className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl cursor-pointer">
                     <span className="text-[10px] font-black uppercase text-slate-500">¿Es un servicio?</span>
-                    <input type="checkbox" className="w-5 h-5 accent-teal-500" checked={newProduct.is_service} onChange={e => setNewProduct({...newProduct, is_service: e.target.checked})} />
+                    <input type="checkbox" className="w-5 h-5 accent-teal-500" checked={newProduct.is_service} onChange={e => setNewProduct({ ...newProduct, is_service: e.target.checked })} />
                   </label>
                 </div>
               </div>
@@ -300,6 +300,64 @@ const Dashboard = () => {
 
               <button type="submit" className="w-full bg-orange-500 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                 {isEditing ? "Actualizar cambios" : "Publicar ahora"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+      {isPostModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3rem] p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-3">
+                <div className="bg-slate-900 p-2 rounded-2xl text-white">
+                  <Camera size={20} />
+                </div>
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter">Nueva Publicación</h2>
+              </div>
+              <button onClick={() => setIsPostModalOpen(false)} className="bg-slate-100 p-2 rounded-full hover:rotate-90 transition-transform">
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData();
+              formData.append('content', postContent);
+              if (file) formData.append('image', file);
+
+              try {
+                await api.post('/social/posts', formData);
+                toast.success("¡Publicado en el muro!");
+                setPostContent('');
+                setFile(null);
+                setIsPostModalOpen(false);
+                fetchData(); // Para recargar la lista de posts
+              } catch (err) {
+                toast.error("Error al publicar");
+              }
+            }} className="space-y-6">
+
+              <textarea
+                placeholder="¿Qué hay de nuevo en tu negocio?"
+                className="w-full p-6 bg-slate-50 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-slate-900 min-h-[150px] resize-none"
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
+                required
+              />
+
+              <label className="block p-4 border-2 border-dashed border-slate-200 text-slate-400 rounded-[2rem] text-center cursor-pointer hover:border-slate-900 hover:text-slate-900 transition-all">
+                <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
+                <div className="flex flex-col items-center gap-1">
+                  <ImageIcon size={24} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {file ? file.name : "Seleccionar Imagen"}
+                  </span>
+                </div>
+              </label>
+
+              <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                Subir al Muro
               </button>
             </form>
           </div>
