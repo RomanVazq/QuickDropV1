@@ -232,7 +232,7 @@ const PublicShop = () => {
                   filter: 'drop-shadow(4px 4px 2px rgba(0,0,0,0.2))'
                 }}
               >
-                {data.business?.name || "Tienda Premium"}
+                {data.business?.name || "Cargando..."}
               </h1>
             </div>
             <br />
