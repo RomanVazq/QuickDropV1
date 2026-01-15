@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from jose import jwt
 from supabase import create_client, Client
+from app.schemas.BusinessHourSchema import BusinessHoursList, BusinessProfileUpdate
 
 from app.database.session import get_db
 from app.models import base
@@ -94,7 +95,16 @@ def get_public_business_data(
             "primary_color": tenant.primary_color,
             "secundary_color": tenant.secundary_color,
             "logo_url": tenant.logo_url,
-            "is_active": tenant.is_active # Lo enviamos por si el front lo necesita
+            "is_active": tenant.is_active, # Lo enviamos por si el front lo necesita
+            "business_hours": [
+                {
+                    "day_of_week": bh.day_of_week,
+                    "open_time": bh.open_time,
+                    "close_time": bh.close_time,
+                    "is_closed": bh.is_closed
+                } for bh in tenant.business_hours
+            ],
+            "appointment_interval": tenant.appointment_interval
         },
         "items": formatted_items,
         "total_items": total_items,
@@ -108,7 +118,8 @@ async def get_availability(slug: str, date: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Negocio no encontrado")
 
     try:
-        search_date = datetime.strptime(date, "%Y-%m-%d")
+        # Forzamos a que la fecha de búsqueda empiece a las 00:00:00 de ese día
+        search_date = datetime.strptime(date, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de fecha inválido")
 
@@ -119,8 +130,11 @@ async def get_availability(slug: str, date: str, db: Session = Depends(get_db)):
         base.Order.appointment_datetime < search_date + timedelta(days=1)
     ).all()
 
-    return {"busy_times": [order.appointment_datetime.strftime("%H:%M") for order in orders]}
-
+    # Importante: El modal espera "09:00", "10:00"... 
+    # strftime("%H:%M") nos da exactamente eso.
+    busy_times = [order.appointment_datetime.strftime("%H:%M") for order in orders if order.appointment_datetime]
+    
+    return {"busy_times": busy_times}
 # --- GESTIÓN PRIVADA (DUEÑO) ---
 
 @router.get("/me")
@@ -304,3 +318,48 @@ async def update_business_config(
     biz.primary_color, biz.secundary_color = primary_color, secundary_color
     db.commit()
     return {"status": "success", "logo_url": biz.logo_url, "primary_color": biz.primary_color}
+
+@router.post("/hours")
+def update_business_hours(
+    payload: BusinessHoursList, 
+    db: Session = Depends(get_db), 
+    tenant_id: str = Depends(get_current_tenant_id)
+):
+    # Borrar anteriores
+    db.query(base.BusinessHour).filter(base.BusinessHour.tenant_id == tenant_id).delete()
+
+    # Insertar directamente los strings
+    for h in payload.hours:
+        new_hour = base.BusinessHour(
+            tenant_id=tenant_id,
+            day_of_week=h.day_of_week,
+            open_time=h.open_time,  # Viene como "09:00" de Pydantic
+            close_time=h.close_time, # Viene como "21:00" de Pydantic
+            is_closed=h.is_closed
+        )
+        
+        db.add(new_hour)
+
+    db.commit()
+    return {"status": "success"}
+
+# 2. Endpoint para Nombre, Slug y Teléfono
+@router.patch("/profile")
+def update_profile(
+    payload: BusinessProfileUpdate, # Tu esquema Pydantic
+    db: Session = Depends(get_db),
+    tenant_id: str = Depends(get_current_tenant_id)
+):
+    tenant = db.query(base.Tenant).filter(base.Tenant.id == tenant_id).first()
+    
+    # Actualizamos los campos básicos
+    tenant.name = payload.name
+    tenant.slug = payload.slug
+    tenant.phone = payload.phone
+    
+    # AGREGAMOS EL INTERVALO AQUÍ
+    if hasattr(payload, 'appointment_interval'):
+        tenant.appointment_interval = payload.appointment_interval
+
+    db.commit()
+    return {"status": "success"}

@@ -11,6 +11,9 @@ import ServiceModal from '../components/ServiceModal';
 import ItemOptionsModal from '../components/ItemOptionsModal';
 import ItemDetailModal from '../components/catalogo/ItemDetailModal';
 import utils from '../utils/utils';
+
+
+
 const PublicShop = () => {
   const { slug } = useParams();
 
@@ -26,6 +29,8 @@ const PublicShop = () => {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -320,6 +325,8 @@ const PublicShop = () => {
           onClose={() => setIsServiceModalOpen(false)}
           item={selectedItem}
           onConfirm={confirmService}
+         businessHours={data?.business?.business_hours || []}
+         interval={data?.business?.appointment_interval || 30}
         />
 
         <ItemOptionsModal

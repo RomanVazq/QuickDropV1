@@ -182,7 +182,7 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
     return {
         "order_id": order_id[:8].upper(),
         "total": total_price,
-        "business_phone": "52" + tenant.phone if tenant.phone else "",
+        "business_phone": tenant.phone if tenant.phone else "",
         "appointment": new_order.appointment_datetime.strftime("%d/%m/%Y %H:%M") if new_order.appointment_datetime else "A convenir",
         "resumen": "\n".join(resumen_items)
     }

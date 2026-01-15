@@ -19,6 +19,7 @@ class Tenant(Base):
     secundary_color = Column(String, default="#000000")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    appointment_interval = Column(Integer, default=30)
 
     # Relaciones
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
@@ -27,6 +28,7 @@ class Tenant(Base):
     wallet = relationship("Wallet", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
     posts = relationship("Post", back_populates="tenant", cascade="all, delete-orphan")
     wallet_transactions = relationship("WalletTransaction", back_populates="tenant")
+    business_hours = relationship("BusinessHour", back_populates="tenant", cascade="all, delete-orphan")
 
 class User(Base):
     __tablename__ = "users"
@@ -155,3 +157,15 @@ class WalletTransaction(Base):
 
     # Relación para consultas fáciles
     tenant = relationship("Tenant", back_populates="wallet_transactions")  
+
+class BusinessHour(Base):
+    __tablename__ = "business_hours"
+    
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)
+    # Cambiamos Time por String aquí:
+    open_time = Column(String, nullable=False) 
+    close_time = Column(String, nullable=False)
+    is_closed = Column(Boolean, default=False)
+    tenant = relationship("Tenant", back_populates="business_hours")
