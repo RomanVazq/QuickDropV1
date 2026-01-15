@@ -93,7 +93,7 @@ const TenantManagement = ({ tenants, onRefresh }) => {
                       </div>
                       <div>
                         <p className="font-bold text-slate-800 text-sm">{tenant.name}</p>
-                        <a href={`/public/${tenant.slug}`} target="_blank" rel="noreferrer" className="text-[10px] text-slate-400 font-medium hover:text-slate-900 flex items-center gap-1">
+                        <a href={`/shop/${tenant.slug}`} target="_blank" rel="noreferrer" className="text-[10px] text-slate-400 font-medium hover:text-slate-900 flex items-center gap-1">
                           /{tenant.slug} <ExternalLink size={10}/>
                         </a>
                       </div>
