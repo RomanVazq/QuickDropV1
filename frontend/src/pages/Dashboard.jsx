@@ -11,7 +11,7 @@ import { toast } from 'react-hot-toast';
 import { ConfigBusiness } from '../components/PerfilCustom';
 import { ProductOptionsManager } from '../components/ProductOptionsManager';
 
-import notificationSoundFile from '../assets/sound.mp3'; 
+import alertSound from '../assets/sound.mp3';
 
 
 // --- COMPONENTE: VISTA DE MURO ---
@@ -94,7 +94,7 @@ const Dashboard = () => {
         const data = JSON.parse(event.data);
         if (data.event === "NEW_ORDER") {
           // Sonido
-          const audio = new Audio(notificationSoundFile);
+          const audio = new Audio(alertSound);
           audio.play().catch(() => console.log("Audio bloqueado o no encontrado"));
 
           // Toast
