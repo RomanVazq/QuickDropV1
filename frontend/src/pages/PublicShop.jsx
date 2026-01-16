@@ -12,8 +12,6 @@ import ItemOptionsModal from '../components/ItemOptionsModal';
 import ItemDetailModal from '../components/catalogo/ItemDetailModal';
 import utils from '../utils/utils';
 
-
-
 const PublicShop = () => {
   const { slug } = useParams();
 
@@ -22,15 +20,13 @@ const PublicShop = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
-  const itemsPerPage = 12; // Aumentado para mejor flujo visual
+  const itemsPerPage = 12;
 
   const [activeTab, setActiveTab] = useState('menu');
   const [step, setStep] = useState(1);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-
-
 
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -41,6 +37,7 @@ const PublicShop = () => {
   });
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   // --- PERSISTENCIA ---
   useEffect(() => {
     const savedCart = localStorage.getItem(`cart_${slug}`);
@@ -104,7 +101,7 @@ const PublicShop = () => {
   })).filter(item => item.id);
 
   const cartTotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const hasService = cartArray.some(item => item.is_service);
+  const hasServiceInCart = cartArray.some(item => item.is_service);
 
   const updateLocalStock = (productId, variantId, delta) => {
     setData(prev => ({
@@ -128,32 +125,39 @@ const PublicShop = () => {
     const item = allItems[cartKey];
     if (!item) return;
 
+    // VALIDACIÓN ESTRICTA: Solo un servicio por cita (independiente de variantes)
+    if (delta > 0 && item.is_service) {
+      if (hasServiceInCart && !cart[cartKey]) {
+        toast.error("Solo puedes agendar un servicio por cita.");
+        return;
+      }
+    }
+
+    // Si tiene variantes/extras y es para añadir (+1), abrir modal de opciones
     if (delta > 0 && !item?.isCustom && (item?.variants?.length > 0 || item?.extras?.length > 0)) {
       setSelectedItem(item);
       setIsOptionsModalOpen(true);
       return;
     }
 
+    // Validación de stock para productos físicos
     if (delta > 0 && !item.is_service) {
-      const currentInStock = data.items.find(p => p.id === (item.id))?.stock;
-      if (currentInStock <= 0) {
-        toast.error("Sin stock");
+      const currentItem = data.items.find(p => p.id === item.id);
+      if (currentItem && currentItem.stock <= 0) {
+        toast.error("Sin stock disponible");
         return;
       }
     }
 
-    if (item?.is_service && delta > 0) {
-      if (cartArray.some(ci => ci.is_service) && !cart[cartKey]) {
-        toast.error("Solo un servicio por cita.");
-        return;
-      }
-      if (!cart[cartKey]) {
-        setSelectedItem(item);
-        setIsServiceModalOpen(true);
-        return;
-      }
-      if (cart[cartKey] >= 1) return;
+    // Si es servicio simple (sin variantes) y no está en el carrito, pedir fecha
+    if (item?.is_service && delta > 0 && !cart[cartKey]) {
+      setSelectedItem(item);
+      setIsServiceModalOpen(true);
+      return;
     }
+
+    // Impedir más de 1 cantidad si es servicio
+    if (item?.is_service && delta > 0 && cart[cartKey] >= 1) return;
 
     setCart(prev => {
       const newQty = (prev[cartKey] || 0) + delta;
@@ -168,34 +172,48 @@ const PublicShop = () => {
   };
 
   const confirmAddition = (customItem) => {
+    // Re-validación de servicio en el paso de confirmación
+    if (customItem.is_service && hasServiceInCart) {
+      toast.error("Ya tienes un servicio en el carrito.");
+      setIsOptionsModalOpen(false);
+      return;
+    }
+
     const variantId = customItem.selectedVariant?.id || 'base';
     const extrasIds = customItem.selectedExtras.map(e => e.id).sort().join('-');
     const cartKey = `${customItem.id}_v${variantId}_e${extrasIds}`;
 
-    if (!customItem.is_service) {
+    const itemToCache = {
+      ...customItem,
+      isCustom: true,
+      price: customItem.totalPrice,
+      variant_name: customItem.selectedVariant?.name || null,
+      extras_names: customItem.selectedExtras.map(e => e.name).join(", "),
+      cartKey: cartKey
+    };
+
+    setAllItems(prev => ({ ...prev, [cartKey]: itemToCache }));
+
+    if (customItem.is_service) {
+      setSelectedItem(itemToCache);
+      setIsOptionsModalOpen(false);
+      setTimeout(() => setIsServiceModalOpen(true), 200);
+    } else {
       updateLocalStock(customItem.id, customItem.selectedVariant?.id, customItem.cartQuantity);
+      setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + customItem.cartQuantity }));
+      setIsOptionsModalOpen(false);
+      toast.success("Agregado al carrito");
     }
-
-    setAllItems(prev => ({
-      ...prev,
-      [cartKey]: {
-        ...customItem,
-        isCustom: true,
-        price: customItem.totalPrice,
-        variant_name: customItem.selectedVariant?.name || null,
-        extras_names: customItem.selectedExtras.map(e => e.name).join(", ")
-      }
-    }));
-
-    setCart(prev => ({ ...prev, [cartKey]: (prev[cartKey] || 0) + customItem.cartQuantity }));
-    setIsOptionsModalOpen(false);
-    toast.success("Agregado");
   };
 
   const confirmService = (id, date) => {
-    setCart(prev => ({ ...prev, [id]: 1 }));
+    // Identificamos si el servicio que se está agendando es el que tiene cartKey personalizada
+    const finalKey = selectedItem?.cartKey || id;
+    
+    setCart(prev => ({ ...prev, [finalKey]: 1 }));
     setFormData(prev => ({ ...prev, appointment_datetime: date }));
     setIsServiceModalOpen(false);
+    toast.success("Horario reservado");
   };
 
   const handleLike = async (postId) => {
@@ -209,75 +227,43 @@ const PublicShop = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 selection:bg-slate-900 selection:text-white">
-      <div className="max-w-[480px] mx-auto bg-white min-h-screen shadow-[0_0_50px_-12px_rgba(0,0,0,0.1)] relative flex flex-col">
+    <div className="min-h-screen bg-slate-50/50">
+      <div className="max-w-[480px] mx-auto bg-white min-h-screen shadow-2xl relative flex flex-col">
 
-        {/* Header Superior */}
         <Header data={data} />
 
-        {/* Navegación de Tabs Sticky */}
         {step === 1 && (
-          <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3 space-y-3">
-            <div className="space-y-0 absolute top-0 transform -translate-y-[85%] left-0 right-0 px-6 text-center">
-              <p
-                className="text-[15px] font-bold uppercase tracking-[0.4em] ml-1"
-                style={{
-                  color: utils.get_primary_color(data),
-                  textShadow: `1px 1px 0px ${utils.get_secondary_color(data)}`
-                }}
-              >
+          <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3">
+            <div className="absolute top-0 transform -translate-y-[85%] left-0 right-0 px-6 text-center">
+              <p className="text-[14px] font-bold uppercase tracking-[0.3em]"
+                style={{ color: utils.get_primary_color(data) }}>
                 Bienvenido a
               </p>
-              <h1
-                className="text-5xl md:text-6xl font-black uppercase tracking-tighter italic leading-[0.85]"
-                style={{
-                  color: utils.get_primary_color(data),
-                  WebkitTextStroke: `2px ${utils.get_secondary_color(data)}`,
-                  paintOrder: 'stroke fill',
-                  filter: 'drop-shadow(4px 4px 2px rgba(0,0,0,0.2))'
-                }}
-              >
+              <h1 className="text-5xl font-black uppercase italic tracking-tighter"
+                style={{ color: utils.get_primary_color(data) }}>
                 {data.business?.name || "Cargando..."}
               </h1>
             </div>
-            <br />
-
-            <div className="flex bg-slate-100/80 p-1 rounded-2xl">
+            
+            <div className="flex bg-slate-100 p-1 rounded-2xl mb-3">
               {['menu', 'gallery'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
-                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === t
-                    ? 'bg-black text-slate-900 shadow-sm text-white'
-                    : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                >
+                <button key={t} onClick={() => setActiveTab(t)}
+                  className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-black text-white' : 'text-slate-400'}`}>
                   {t === 'menu' ? 'Catálogo' : 'Explorar'}
                 </button>
               ))}
             </div>
 
             {activeTab === 'menu' && (
-              <div className="relative group animate-in slide-in-from-top-2 duration-300">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" size={15} />
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Busca tu producto favorito..."
-                  className="w-full bg-slate-100 border-none rounded-2xl py-3 pl-11 pr-10 text-xs font-bold outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
-                />
-                {inputValue && (
-                  <button onClick={() => setInputValue('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-lg shadow-sm text-slate-400 hover:text-slate-900">
-                    <X size={12} />
-                  </button>
-                )}
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Busca servicios o productos..."
+                  className="w-full bg-slate-100 border-none rounded-2xl py-3 pl-11 pr-10 text-xs font-bold outline-none" />
               </div>
             )}
           </div>
         )}
 
-        {/* Contenido Principal */}
         <main className="flex-1">
           {step === 1 ? (
             <PublicCatalog {...{
@@ -287,39 +273,36 @@ const PublicShop = () => {
           ) : (
             <PublicCart {...{
               cartArray, updateQuantity, setStep, formData, setFormData,
-              cartTotal, hasService, business: data.business, slug, setCart
+              cartTotal, hasService: hasServiceInCart, business: data.business, slug, setCart
             }} />
           )}
         </main>
 
-        {/* Botón Carrito Flotante (Diseño Premium) */}
         {cartTotal > 0 && step === 1 && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-6 z-50">
-            <button
-              onClick={() => setStep(2)}
-              className="w-full bg-slate-900 text-white group p-2 pl-6 rounded-[2.5rem] flex items-center justify-between shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all duration-300"
-            >
+            <button onClick={() => setStep(2)}
+              className="w-full bg-slate-900 text-white p-2 pl-6 rounded-[2.5rem] flex items-center justify-between shadow-2xl active:scale-95 transition-transform">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <ShoppingBag size={20} className="text-white" />
-                  <span className="absolute -top-1 -right-1 bg-white text-slate-900 text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                  <ShoppingBag size={20} />
+                  <span className="absolute -top-1 -right-1 bg-white text-black text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                     {cartArray.length}
                   </span>
                 </div>
                 <div className="text-left">
-                  <p className="text-[10px] font-black uppercase text-white/40 leading-none mb-1">Tu orden</p>
-                  <p className="text-lg font-black italic tracking-tight">${cartTotal.toLocaleString()}</p>
+                  <p className="text-[10px] font-bold text-white/50 uppercase leading-none">Mi Pedido</p>
+                  <p className="text-lg font-black italic">${cartTotal.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="bg-white/10 group-hover:bg-white/20 px-6 py-4 rounded-[2rem] flex items-center gap-2 transition-colors">
-                <span className="text-[11px] font-black uppercase tracking-widest">Revisar</span>
-                <ChevronRight size={14} strokeWidth={3} />
+              <div className="bg-white/10 px-6 py-4 rounded-[2rem] flex items-center gap-2">
+                <span className="text-[11px] font-black uppercase">Ver Carrito</span>
+                <ChevronRight size={14} />
               </div>
             </button>
           </div>
         )}
 
-        {/* Modales */}
+        {/* --- MODALES --- */}
         <ServiceModal
           isOpen={isServiceModalOpen}
           onClose={() => setIsServiceModalOpen(false)}
@@ -337,13 +320,14 @@ const PublicShop = () => {
           item={selectedItem}
           onConfirm={confirmAddition}
         />
+
+        <ItemDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          item={selectedItem}
+          onAdd={updateQuantity}
+        />
       </div>
-      <ItemDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        item={selectedItem}
-        onAdd={updateQuantity}
-      />
     </div>
   );
 };
