@@ -325,8 +325,9 @@ const PublicShop = () => {
           onClose={() => setIsServiceModalOpen(false)}
           item={selectedItem}
           onConfirm={confirmService}
-         businessHours={data?.business?.business_hours || []}
-         interval={data?.business?.appointment_interval || 30}
+          businessHours={data?.business?.business_hours || []}
+          interval={data?.business?.appointment_interval || 30}
+          tenantId={data?.business?.id}
         />
 
         <ItemOptionsModal

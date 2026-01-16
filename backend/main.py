@@ -3,12 +3,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-
+from starlette.websockets import WebSocket, WebSocketDisconnect
 # Importaciones de tu aplicación
 from app.database.session import engine, Base, get_db
 from app.api import orders, auth, business, social, super_admin
 from app.models.base import Tenant, Item
 
+from app.core.websocket_manager import manager
 # 1. Inicializar base de datos
 Base.metadata.create_all(bind=engine)
 
@@ -62,7 +63,7 @@ async def verify_origin_key(request: Request, call_next):
 # Se ejecuta DESPUÉS del middleware de seguridad en el flujo de respuesta
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://quickdrop.shop","https://www.quickdrop.shop", "http://localhost:5173"], 
+    allow_origins=["https://quickdrop.shop","https://www.quickdrop.shop"], 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"], # Esto permite que el header 'X-Internal-Client' pase sin problemas
@@ -83,3 +84,16 @@ def health_check():
         "environment": ENV,
         "timestamp": "2026-01-03T12:52:41Z"
     }
+@app.websocket("/ws/{tenant_id}")
+async def websocket_endpoint(websocket: WebSocket, tenant_id: str):
+    await manager.connect(websocket, tenant_id)
+    try:
+        while True:
+            # Esto mantiene la conexión abierta esperando mensajes (pings)
+            data = await websocket.receive_text() 
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, tenant_id)
+        print(f"🔌 Cliente desconectado de {tenant_id}")
+    except Exception as e:
+        print(f"⚠️ Error inesperado en socket: {e}")
+        manager.disconnect(websocket, tenant_id)  

@@ -1,161 +1,146 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useParams } from 'react-router-dom';
 
-const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interval }) => {
+const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interval, tenantId }) => {
   const { slug } = useParams();
   const [selectedDate, setSelectedDate] = useState('');
   const [busyTimes, setBusyTimes] = useState([]);
-  const [loadingTimes, setLoadingTimes] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [lastBookedTime, setLastBookedTime] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
 
-  // Tomamos el intervalo del negocio, por defecto 30 si no existe
   const interval_ = interval || 30;
+
+  const fetchBusyTimes = useCallback(async (date) => {
+    if (!date || !slug) return;
+    try {
+      const res = await api.get(`/business/public/availability/${slug}?date=${date}`);
+      const normalized = (res.data.busy_times || []).map(t => t.substring(0, 5));
+      setBusyTimes(normalized);
+    } catch (err) {
+      console.error("Error disponibilidad:", err);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    if (!isOpen || !tenantId || !selectedDate) return;
+
+    const isLocal = window.location.hostname === 'localhost';
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = isLocal ? 'localhost:8000' : window.location.host;
+    const socket = new WebSocket(`${protocol}://${host}/ws/${tenantId}`);
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.event === "NEW_ORDER" && data.appointment) {
+        const [bookedDate, bookedFullTime] = data.appointment.split('T');
+        const bookedHour = bookedFullTime.substring(0, 5);
+
+        if (bookedDate === selectedDate) {
+          setLastBookedTime(bookedHour);
+          setShowAlert(true);
+          const audio = new Audio('/sound.mp3');
+          audio.play().catch(err => console.error("Error playing sound:", err));
+          setBusyTimes(prev => prev.includes(bookedHour) ? prev : [...prev, bookedHour]);
+          setTimeout(() => setShowAlert(false), 6000);
+        }
+      }
+    };
+
+    return () => socket.close();
+  }, [isOpen, tenantId, selectedDate]);
 
   const generateSlots = (openStr, closeStr, intervalMins) => {
     const slots = [];
     const [startH, startM] = openStr.split(':').map(Number);
     let [endH, endM] = closeStr.split(':').map(Number);
-
     if (endH === 0 && endM === 0) endH = 24;
-
     let currentMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
-
-    // Ahora avanza según el intervalo configurado (15, 30, 45, 60)
     while (currentMinutes < endMinutes) {
       const h = Math.floor(currentMinutes / 60);
       const m = currentMinutes % 60;
-
-      slots.push(
-        `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
-      );
+      slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
       currentMinutes += intervalMins;
     }
-
     return slots;
   };
 
   useEffect(() => {
-    if (selectedDate && businessHours && businessHours.length > 0) {
+    if (selectedDate && businessHours?.length > 0) {
       const [year, month, day] = selectedDate.split('-').map(Number);
       const dateObj = new Date(year, month - 1, day);
-      const dayOfWeek = dateObj.getDay(); 
-
-      const dayConfig = businessHours.find(h => Number(h.day_of_week) === dayOfWeek);
+      const dayConfig = businessHours.find(h => Number(h.day_of_week) === dateObj.getDay());
 
       if (dayConfig && !dayConfig.is_closed) {
-        // Generamos slots usando el intervalo dinámico
         let slots = generateSlots(dayConfig.open_time, dayConfig.close_time, interval_);
-
         const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-
-        if (selectedDate === todayStr) {
+        if (selectedDate === now.toISOString().split('T')[0]) {
           const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
           slots = slots.filter(slot => {
             const [h, m] = slot.split(':').map(Number);
             return (h * 60 + m) > currentTotalMinutes;
           });
         }
-
         setAvailableSlots(slots);
-        fetchBusyTimes();
+        fetchBusyTimes(selectedDate);
       } else {
         setAvailableSlots([]);
         setBusyTimes([]);
       }
     }
-  }, [selectedDate, businessHours, interval_]);
-
-  const fetchBusyTimes = async () => {
-    setLoadingTimes(true);
-    try {
-      const res = await api.get(`/business/public/availability/${slug}?date=${selectedDate}`);
-      setBusyTimes(res.data.busy_times || []);
-    } catch (err) {
-      console.error("Error cargando disponibilidad:", err);
-      setBusyTimes([]);
-    } finally {
-      setLoadingTimes(false);
-    }
-  };
-
-  const handleTimeSelection = (time) => {
-    const fullDateTime = `${selectedDate}T${time}`;
-    onConfirm(item.id, fullDateTime);
-  };
+  }, [selectedDate, businessHours, interval_, fetchBusyTimes]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] p-8 animate-in slide-in-from-bottom-20 duration-300">
-        <div className="flex justify-between items-start mb-6">
+      <div className="bg-white w-full max-w-md rounded-t-[40px] sm:rounded-[40px] p-8 animate-in slide-in-from-bottom-20 duration-300 relative">
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <h3 className="text-2xl font-black uppercase italic leading-none text-slate-900">Agendar</h3>
-            <p className="text-orange-500 font-black text-sm uppercase">{item?.name}</p>
+            <h3 className="text-2xl font-black uppercase italic text-slate-900">Agendar</h3>
+            <p className="text-orange-500 font-black text-[10px] uppercase tracking-tighter">{item?.name}</p>
           </div>
-          <button onClick={onClose} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
-            ✕
-          </button>
+          <button onClick={onClose} className="p-2 bg-slate-100 rounded-full">✕</button>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">
-              1. Selecciona el día
-            </label>
-            <input
-              type="date"
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-slate-900 outline-none font-bold transition-all"
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </div>
-
-          {selectedDate && (
-            <div className="animate-in fade-in zoom-in-95 duration-300">
-              <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">
-                2. Horas disponibles {loadingTimes && "..."}
-              </label>
-
-              {availableSlots.length > 0 ? (
-                <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                  {availableSlots.map(time => {
-                    const isBusy = busyTimes.includes(time);
-                    return (
-                      <button
-                        key={time}
-                        disabled={isBusy || loadingTimes}
-                        onClick={() => handleTimeSelection(time)}
-                        className={`p-3 rounded-xl font-black text-xs transition-all ${isBusy
-                            ? 'bg-slate-100 text-slate-300 cursor-not-allowed line-through'
-                            : 'bg-slate-900 text-white active:scale-95 hover:bg-orange-500 shadow-md'
-                          }`}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-8 bg-red-50 rounded-[2rem] text-center border border-red-100">
-                  <p className="text-red-500 text-[10px] font-black uppercase tracking-tighter">
-                    No hay citas disponibles para este día
-                  </p>
-                </div>
-              )}
+        <div className="h-12 mb-2">
+          {showAlert && (
+            <div className="bg-orange-500 text-white p-3 rounded-2xl flex items-center gap-3 animate-bounce">
+              <span className="text-[10px] font-black uppercase">¡ALGUIEN RESERVÓ A LAS {lastBookedTime}!</span>
             </div>
           )}
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full mt-8 py-4 text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] hover:text-slate-600 transition-colors"
-        >
-          Volver al menú
-        </button>
+        <div className="space-y-6">
+          <input
+            type="date"
+            min={new Date().toISOString().split('T')[0]}
+            className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-black"
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+
+          {selectedDate && (
+            <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
+              {availableSlots.map(time => {
+                const isBusy = busyTimes.includes(time);
+                return (
+                  <button
+                    key={time}
+                    disabled={isBusy}
+                    onClick={() => onConfirm(item.id, `${selectedDate}T${time}`)}
+                    className={`p-3 rounded-xl font-black text-xs transition-all ${
+                      isBusy ? 'bg-slate-100 text-slate-300 cursor-not-allowed line-through' : 'bg-slate-900 text-white'
+                    }`}
+                  >
+                    {time}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from app.database.session import get_db
 from app.models import base
 from app.api.auth import get_current_user 
-
+from app.core.websocket_manager import manager
 router = APIRouter()
 
 # --- ESQUEMAS (Pydantic) ---
@@ -173,10 +173,29 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
         db.add(history)
         db.add_all(db_items)
         db.commit() # Aquí se guardan los cambios de stock, wallet y orden
+        db.refresh(new_order)
     except Exception as e:
         db.rollback()
         print(f"Error Database: {e}")
         raise HTTPException(status_code=500, detail="Error interno al procesar el pedido")
+
+    try:
+        await manager.broadcast_to_tenant(
+            tenant_id=tenant.id,
+            message={
+                "event": "NEW_ORDER",
+                "order_id": order_id[:8].upper(),
+                "customer": order_data.customer_name,
+                "total": total_price,
+                "items_count": len(order_data.items),
+                "appointment": new_order.appointment_datetime.isoformat() if new_order.appointment_datetime else None,
+                "wallet_balance": int(wallet.balance) # Útil para avisar al admin que se le acaban los créditos
+            }
+        )
+    except Exception as ws_error:
+        # Usamos un try/except aquí para que si el WebSocket falla por algo, 
+        # no le de un error 500 al cliente que ya pagó/hizo el pedido.
+        print(f"Error enviando notificación WS: {ws_error}")    
 
     # 8. Respuesta al Cliente
     return {
