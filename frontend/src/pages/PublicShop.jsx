@@ -209,7 +209,7 @@ const PublicShop = () => {
   const confirmService = (id, date) => {
     // Identificamos si el servicio que se está agendando es el que tiene cartKey personalizada
     const finalKey = selectedItem?.cartKey || id;
-    
+
     setCart(prev => ({ ...prev, [finalKey]: 1 }));
     setFormData(prev => ({ ...prev, appointment_datetime: date }));
     setIsServiceModalOpen(false);
@@ -234,17 +234,29 @@ const PublicShop = () => {
 
         {step === 1 && (
           <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 py-3">
-            <div className="absolute top-0 transform -translate-y-[85%] left-0 right-0 px-6 text-center">
-              <p className="text-[14px] font-bold uppercase tracking-[0.3em]"
-                style={{ color: utils.get_primary_color(data) }}>
+            <div className="space-y-0 absolute top-0 transform -translate-y-[85%] left-0 right-0 px-6 text-center">
+              <p
+                className="text-[15px] font-bold uppercase tracking-[0.4em] ml-1"
+                style={{
+                  color: utils.get_primary_color(data),
+                  textShadow: `1px 1px 0px ${utils.get_secondary_color(data)}`
+                }}
+              >
                 Bienvenido a
               </p>
-              <h1 className="text-5xl font-black uppercase italic tracking-tighter"
-                style={{ color: utils.get_primary_color(data) }}>
+              <h1
+                className="text-5xl md:text-6xl font-black uppercase tracking-tighter italic leading-[0.85]"
+                style={{
+                  color: utils.get_primary_color(data),
+                  WebkitTextStroke: `2px ${utils.get_secondary_color(data)}`,
+                  paintOrder: 'stroke fill',
+                  filter: 'drop-shadow(4px 4px 2px rgba(0,0,0,0.2))'
+                }}
+              >
                 {data.business?.name || "Cargando..."}
               </h1>
             </div>
-            
+
             <div className="flex bg-slate-100 p-1 rounded-2xl mb-3">
               {['menu', 'gallery'].map(t => (
                 <button key={t} onClick={() => setActiveTab(t)}

@@ -151,7 +151,7 @@ const renderItemCard = (item) => {
               <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center">
                 <Package size={14} className="text-slate-400" />
               </div>
-              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Menú Sugerido</h2>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Productos</h2>
             </div>
             <div className="grid grid-cols-1 gap-4">{products.map(renderItemCard)}</div>
           </div>
