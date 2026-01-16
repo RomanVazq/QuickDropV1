@@ -38,7 +38,7 @@ const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interva
     
     const socket = new WebSocket(wsUrl);
 
-    socket.onopen = () => console.log("✅ WebSocket conectado a:", wsUrl);
+    
 
     socket.onmessage = (event) => {
       try {
