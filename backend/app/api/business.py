@@ -148,6 +148,7 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
     return {
         "name": tenant.name,
         "slug": tenant.slug,
+        "tenant_id": tenant.id,
         "wallet": {"balance": wallet.balance if wallet else 0},
         "primary_color": tenant.primary_color,
         "secundary_color": tenant.secundary_color,
