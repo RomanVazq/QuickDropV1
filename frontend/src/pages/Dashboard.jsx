@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import OrdersDashboard from './OrdersDashboard';
 import {
@@ -36,7 +36,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('main');
   const [items, setItems] = useState([]);
   const [posts, setPosts] = useState([]);
-  const [business, setBusiness] = useState({ name: '', slug: '', wallet: { balance: 0 } });
+  const [business, setBusiness] = useState({ name: '', slug: '', tenant_id: '', wallet: { balance: 0 } });
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
@@ -52,14 +52,8 @@ const Dashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [postContent, setPostContent] = useState('');
-  // Efecto para búsqueda y paginación con Debounce
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchData();
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [currentPage, inputValue]);
 
+  // 1. FUNCIÓN DE CARGA DE DATOS (Se llama al iniciar y cuando hay un nuevo pedido)
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -79,6 +73,52 @@ const Dashboard = () => {
       if (err.response?.status === 401) window.location.href = '/login';
     } finally { setLoading(false); }
   };
+
+  // 2. WEBSOCKET GLOBAL (Escucha pedidos en cualquier pestaña)
+  useEffect(() => {
+    if (!business.tenant_id) return;
+
+    const isLocal = window.location.hostname === 'localhost';
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'localhost:8000';
+    const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0];
+    
+    const wsUrl = `${protocol}://${host}/ws/${business.tenant_id}`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === "NEW_ORDER") {
+          // Sonido
+          const audio = new Audio('/sound.mp3');
+          audio.play().catch(() => console.log("Audio bloqueado o no encontrado"));
+
+          // Toast
+          toast.success("¡NUEVO PEDIDO RECIBIDO!", {
+            duration: 8000,
+            icon: '🛍️',
+            style: { background: '#0f172a', color: '#fff', borderRadius: '15px' }
+          });
+
+          // Recargar todo (Balance e Inventario)
+          fetchData();
+        }
+      } catch (err) {
+        console.error("Error WS:", err);
+      }
+    };
+
+    return () => socket.close();
+  }, [business.tenant_id]);
+
+  // Efecto para búsqueda y paginación
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchData();
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [currentPage, inputValue]);
 
   const handleProductSubmit = async (e) => {
     e.preventDefault();
@@ -127,9 +167,7 @@ const Dashboard = () => {
       await api.delete(`/social/posts/${postId}`);
       toast.success("Publicación eliminada");
       setPosts(posts.filter(post => post.id !== postId));
-    } catch (err) {
-      toast.error("Error al eliminar la publicación");
-    }
+    } catch (err) { toast.error("Error al eliminar"); }
   };
 
   return (
@@ -153,7 +191,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {activeTab === 'orders' ? <OrdersDashboard /> :
+        {/* CONTENIDO SEGÚN PESTAÑA */}
+        {activeTab === 'orders' ? <OrdersDashboard tenantId={business.tenant_id} /> :
           activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> :
             activeTab === 'profile' ? <ConfigBusiness /> : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -187,7 +226,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* TABLA */}
+                {/* TABLA DE PRODUCTOS */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -207,7 +246,7 @@ const Dashboard = () => {
                             </tr>
                           ))
                         ) : items.length === 0 ? (
-                          <tr><td colSpan="3" className="py-20 text-center opacity-20 font-black uppercase italic">No se encontraron resultados</td></tr>
+                          <tr><td colSpan="3" className="py-20 text-center opacity-20 font-black uppercase italic">No hay resultados</td></tr>
                         ) : (
                           items.map(item => (
                             <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
@@ -290,7 +329,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <ProductOptionsManager title="Variantes (Tallas/Tipos)" options={variants} setOptions={setVariants} type="variant" />
+              <ProductOptionsManager title="Variantes" options={variants} setOptions={setVariants} type="variant" />
               <ProductOptionsManager title="Extras" options={extras} setOptions={setExtras} type="extra" />
 
               <label className="block p-4 bg-slate-900 text-white rounded-[2rem] text-center cursor-pointer hover:bg-black transition-all">
@@ -305,19 +344,17 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL POST */}
       {isPostModalOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
-                <div className="bg-slate-900 p-2 rounded-2xl text-white">
-                  <Camera size={20} />
-                </div>
+                <div className="bg-slate-900 p-2 rounded-2xl text-white"><Camera size={20} /></div>
                 <h2 className="text-3xl font-black italic uppercase tracking-tighter">Nueva Publicación</h2>
               </div>
-              <button onClick={() => setIsPostModalOpen(false)} className="bg-slate-100 p-2 rounded-full hover:rotate-90 transition-transform">
-                <X size={24} />
-              </button>
+              <button onClick={() => setIsPostModalOpen(false)} className="bg-slate-100 p-2 rounded-full hover:rotate-90 transition-transform"><X size={24} /></button>
             </div>
 
             <form onSubmit={async (e) => {
@@ -325,40 +362,22 @@ const Dashboard = () => {
               const formData = new FormData();
               formData.append('content', postContent);
               if (file) formData.append('image', file);
-
               try {
                 await api.post('/social/posts', formData);
-                toast.success("¡Publicado en el muro!");
-                setPostContent('');
-                setFile(null);
-                setIsPostModalOpen(false);
-                fetchData(); // Para recargar la lista de posts
-              } catch (err) {
-                toast.error("Error al publicar");
-              }
+                toast.success("¡Publicado!");
+                setPostContent(''); setFile(null); setIsPostModalOpen(false);
+                fetchData();
+              } catch (err) { toast.error("Error al publicar"); }
             }} className="space-y-6">
-
-              <textarea
-                placeholder="¿Qué hay de nuevo en tu negocio?"
-                className="w-full p-6 bg-slate-50 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-slate-900 min-h-[150px] resize-none"
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                required
-              />
-
+              <textarea placeholder="¿Qué hay de nuevo?" className="w-full p-6 bg-slate-50 rounded-[2rem] font-bold outline-none border-2 border-transparent focus:border-slate-900 min-h-[150px] resize-none" value={postContent} onChange={(e) => setPostContent(e.target.value)} required />
               <label className="block p-4 border-2 border-dashed border-slate-200 text-slate-400 rounded-[2rem] text-center cursor-pointer hover:border-slate-900 hover:text-slate-900 transition-all">
                 <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
                 <div className="flex flex-col items-center gap-1">
                   <ImageIcon size={24} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    {file ? file.name : "Seleccionar Imagen"}
-                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{file ? file.name : "Imagen"}</span>
                 </div>
               </label>
-
-              <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-                Subir al Muro
-              </button>
+              <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase shadow-lg">Publicar</button>
             </form>
           </div>
         </div>

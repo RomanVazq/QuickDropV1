@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { Package, CheckCircle, XCircle, MapPin, User, DollarSign, FileText, ShoppingBasket, Layers, Tag } from 'lucide-react';
+import { Package, CheckCircle, XCircle, MapPin, User, FileText, ShoppingBasket, Layers, Tag } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import notificationSoundFile from '../assets/sound.mp3'; 
 
 const OrdersDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
+  const [tenantId, setTenantId] = useState(null);
+
+  // 1. Obtener el tenant_id del usuario (del perfil o del token)
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.tenant_id) setTenantId(user.tenant_id);
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -29,16 +37,47 @@ const OrdersDashboard = () => {
 
       setOrders(sortedOrders);
     } catch (err) {
-      toast.error("Error al filtrar pedidos");
+      toast.error("Error al cargar pedidos");
     } finally {
       setLoading(false);
     }
   }, [filter]);
 
+  // 2. LÓGICA DE TIEMPO REAL PARA EL NEGOCIO
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const isLocal = window.location.hostname === 'localhost';
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'localhost:8000';
+    const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0];
+    
+    const socket = new WebSocket(`${protocol}://${host}/ws/${tenantId}`);
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.event === "NEW_ORDER") {
+        // Reproducir sonido de alerta
+        const audio = new Audio(notificationSoundFile);
+        audio.play().catch(() => console.log("Audio bloqueado"));
+
+        toast.success("¡NUEVO PEDIDO RECIBIDO!", {
+          duration: 6000,
+          icon: '🔥',
+          style: { background: '#0f172a', color: '#fff', fontWeight: 'bold' }
+        });
+
+        // Recargar la lista automáticamente
+        fetchOrders();
+      }
+    };
+
+    return () => socket.close();
+  }, [tenantId, fetchOrders]);
+
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 40000);
-    return () => clearInterval(interval);
   }, [fetchOrders]);
 
   const updateStatus = async (id, newStatus) => {
@@ -63,6 +102,7 @@ const OrdersDashboard = () => {
           </p>
         </div>
 
+        {/* FILTROS */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2">
           {[
             { id: 'all', label: 'Todos', color: 'bg-slate-900' },
@@ -73,10 +113,10 @@ const OrdersDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${
+              className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${
                 filter === tab.id 
                   ? `${tab.color} text-white border-transparent shadow-lg scale-105` 
-                  : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
+                  : 'bg-white text-slate-400 border-slate-100'
               }`}
             >
               {tab.label}
@@ -97,10 +137,10 @@ const OrdersDashboard = () => {
             <div 
               key={order.id} 
               className={`bg-white border-2 rounded-[32px] p-6 shadow-sm border-t-8 transition-all flex flex-col ${
-                order.status === 'pending' ? 'border-orange-500 ring-4 ring-orange-500/5' : 'border-slate-100 border-t-slate-900'
+                order.status === 'pending' ? 'border-orange-500 ring-4 ring-orange-500/5 shadow-xl' : 'border-slate-100 border-t-slate-900'
               }`}
             >
-              {/* HEADER TICKET */}
+              {/* HEADER */}
               <div className="flex justify-between items-start mb-4">
                 <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${
                   order.status === 'completed' ? 'bg-green-50 text-green-600 border-green-100' :
@@ -114,41 +154,36 @@ const OrdersDashboard = () => {
                 </span>
               </div>
 
-              {/* DETALLES CLIENTE */}
+              {/* CLIENTE */}
               <div className="space-y-3 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><User size={16}/></div>
                   <div className="overflow-hidden">
-                    <p className="text-[10px] uppercase font-black text-slate-400">Cliente</p>
+                    <p className="text-[10px] uppercase font-black text-slate-400 leading-none">Cliente</p>
                     <p className="font-bold text-sm truncate">{order.customer_name}</p>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-3">
                   <div className="bg-slate-50 p-2 rounded-xl text-slate-900"><MapPin size={16}/></div>
                   <div className="overflow-hidden">
-                    <p className="text-[10px] uppercase font-black text-slate-400">Dirección</p>
+                    <p className="text-[10px] uppercase font-black text-slate-400 leading-none">Entrega</p>
                     <p className="text-xs text-slate-600 truncate">{order.address}</p>
                   </div>
                 </div>
               </div>
 
-              {/* PRODUCTOS (NUEVA SECCIÓN) */}
+              {/* PRODUCTOS */}
               <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
                 <div className="flex items-center gap-2 mb-3">
                   <ShoppingBasket size={14} className="text-slate-400" />
-                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Productos</p>
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Pedido</p>
                 </div>
                 <div className="space-y-3">
                   {order.order_items?.map((item, idx) => (
                     <div key={idx} className="border-b border-slate-200/50 last:border-0 pb-2 last:pb-0">
-                      <div className="flex justify-between items-start">
-                        <p className="text-xs font-bold text-slate-800 uppercase leading-tight">
-                          <span className="text-orange-500 font-black">{item.quantity}x</span> {item.item_name || 'Producto'}
-                        </p>
-                      </div>
-                      
-                      {/* Mostrar Variante y Extras si existen */}
+                      <p className="text-xs font-bold text-slate-800 uppercase leading-tight">
+                        <span className="text-orange-500 font-black">{item.quantity}x</span> {item.item_name}
+                      </p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {item.variant_name && (
                           <span className="flex items-center gap-1 text-[8px] font-black bg-slate-900 text-white px-1.5 py-0.5 rounded uppercase">
@@ -166,31 +201,30 @@ const OrdersDashboard = () => {
                 </div>
               </div>
 
-              {/* NOTAS Y TOTAL */}
+              {/* PIE DE TICKET */}
               <div className="mt-auto space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="bg-slate-50 p-2 rounded-xl text-slate-900 shrink-0"><FileText size={16}/></div>
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase font-black text-slate-400">Notas</p>
-                    <p className="text-xs text-slate-600 italic">"{order.notes || "Sin notas adicionales"}"</p>
+                    <p className="text-[10px] uppercase font-black text-slate-400">Instrucciones</p>
+                    <p className="text-xs text-slate-600 italic truncate italic">"{order.notes || "Sin notas"}"</p>
                   </div>
                 </div>
-
                 <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl">
-                  <p className="text-[10px] uppercase font-black opacity-60">Cobrar:</p>
+                  <p className="text-[10px] uppercase font-black opacity-60">Total:</p>
                   <p className="text-xl font-black">${order.total_amount?.toFixed(2)}</p>
                 </div>
               </div>
 
-              {/* ACCIONES */}
+              {/* BOTONES */}
               <div className="flex gap-2 pt-4 mt-4 border-t border-dashed border-slate-100">
                 {order.status === 'pending' ? (
                   <>
                     <button 
                       onClick={() => updateStatus(order.id, 'completed')}
-                      className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-100"
+                      className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-green-600 transition-all shadow-lg"
                     >
-                      <CheckCircle size={16}/> Listar
+                      <CheckCircle size={16}/> Completar
                     </button>
                     <button 
                       onClick={() => updateStatus(order.id, 'cancelled')}
@@ -216,7 +250,7 @@ const OrdersDashboard = () => {
       {!loading && orders.length === 0 && (
         <div className="text-center py-20 border-4 border-dashed border-slate-50 rounded-[48px]">
           <Package size={64} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest italic">No hay pedidos con este filtro</p>
+          <p className="text-slate-400 font-bold uppercase tracking-widest italic">No hay actividad por aquí</p>
         </div>
       )}
     </div>
