@@ -25,30 +25,49 @@ const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interva
 
   useEffect(() => {
     if (!isOpen || !tenantId || !selectedDate) return;
+    const getWsHost = () => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      if (!baseUrl) return window.location.host;
+      return baseUrl.replace(/^https?:\/\//, '').split('/')[0];
+    };
 
-    const isLocal = window.location.hostname === 'localhost';
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = isLocal ? 'localhost:8000' : window.location.host;
-    const socket = new WebSocket(`${protocol}://${host}/ws/${tenantId}`);
+    const host = getWsHost();
+    const wsUrl = `${protocol}://${host}/ws/${tenantId}`;
+    
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => console.log("✅ WebSocket conectado a:", wsUrl);
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.event === "NEW_ORDER" && data.appointment) {
-        const [bookedDate, bookedFullTime] = data.appointment.split('T');
-        const bookedHour = bookedFullTime.substring(0, 5);
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === "NEW_ORDER" && data.appointment) {
+          const [bookedDate, bookedFullTime] = data.appointment.split('T');
+          const bookedHour = bookedFullTime.substring(0, 5);
 
-        if (bookedDate === selectedDate) {
-          setLastBookedTime(bookedHour);
-          setShowAlert(true);
-          const audio = new Audio('/sound.mp3');
-          audio.play().catch(err => console.error("Error playing sound:", err));
-          setBusyTimes(prev => prev.includes(bookedHour) ? prev : [...prev, bookedHour]);
-          setTimeout(() => setShowAlert(false), 6000);
+          if (bookedDate === selectedDate) {
+            setLastBookedTime(bookedHour);
+            setShowAlert(true);
+            
+            // Sonido y actualización de estado
+            const audio = new Audio('/sound.mp3');
+            audio.play().catch(() => console.log("Audio bloqueado por el navegador"));
+            
+            setBusyTimes(prev => prev.includes(bookedHour) ? prev : [...prev, bookedHour]);
+            setTimeout(() => setShowAlert(false), 6000);
+          }
         }
+      } catch (err) {
+        console.error("Error en mensaje WS:", err);
       }
     };
 
-    return () => socket.close();
+    socket.onerror = (err) => console.error("❌ Error WebSocket:", err);
+
+    return () => {
+      if (socket.readyState === 1) socket.close();
+    };
   }, [isOpen, tenantId, selectedDate]);
 
   const generateSlots = (openStr, closeStr, intervalMins) => {
