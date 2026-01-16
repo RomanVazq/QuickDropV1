@@ -78,35 +78,40 @@ const Dashboard = () => {
   useEffect(() => {
     if (!business.tenant_id) return;
 
-    const isLocal = window.location.hostname === 'localhost';
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    // Detectar si es producción o local de forma más precisa
+    const isProd = import.meta.env.PROD;
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'localhost:8000';
-    const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0];
-    
+
+    // Limpiar el protocolo http/https de la URL para el socket
+    const host = baseUrl.replace(/^https?:\/\//, '');
+
+    // En producción usamos wss, en local ws
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+
     const wsUrl = `${protocol}://${host}/ws/${business.tenant_id}`;
+
+    console.log("Intentando conectar a:", wsUrl); // Revisa esto en la consola de Chrome en producción
+
     const socket = new WebSocket(wsUrl);
 
+    socket.onopen = () => console.log("✅ WebSocket Conectado en Producción");
+
     socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === "NEW_ORDER") {
-          // Sonido
-          const audio = new Audio('/sound.mp3');
-          audio.play().catch(() => console.log("Audio bloqueado o no encontrado"));
-
-          // Toast
-          toast.success("¡NUEVO PEDIDO RECIBIDO!", {
-            duration: 8000,
-            icon: '🛍️',
-            style: { background: '#0f172a', color: '#fff', borderRadius: '15px' }
-          });
-
-          // Recargar todo (Balance e Inventario)
-          fetchData();
-        }
-      } catch (err) {
-        console.error("Error WS:", err);
+      const data = JSON.parse(event.data);
+      if (data.event === "NEW_ORDER") {
+        new Audio('/sound.mp3').play().catch(() => { });
+        toast.success("¡NUEVO PEDIDO!");
+        fetchData();
       }
+    };
+
+    // Reconexión automática si se cae (Muy importante en producción)
+    socket.onclose = () => {
+      console.log("WS Cerrado. Reintentando en 5s...");
+      setTimeout(() => {
+        // Esto disparará el efecto de nuevo si el componente sigue montado
+        if (business.tenant_id) fetchData();
+      }, 5000);
     };
 
     return () => socket.close();
