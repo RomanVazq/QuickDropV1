@@ -11,6 +11,9 @@ import { toast } from 'react-hot-toast';
 import { ConfigBusiness } from '../components/PerfilCustom';
 import { ProductOptionsManager } from '../components/ProductOptionsManager';
 
+import notificationSoundFile from '../assets/sound.mp3'; 
+
+
 // --- COMPONENTE: VISTA DE MURO ---
 const PostsView = ({ posts, onDelete }) => {
   if (posts.length === 0) return <div className="py-20 text-center font-black opacity-20 uppercase italic tracking-widest">No hay publicaciones aún</div>;
@@ -91,13 +94,12 @@ const Dashboard = () => {
         const data = JSON.parse(event.data);
         if (data.event === "NEW_ORDER") {
           // Sonido
-          const audio = new Audio('/sound.mp3');
+          const audio = new Audio(notificationSoundFile);
           audio.play().catch(() => console.log("Audio bloqueado o no encontrado"));
 
           // Toast
           toast.success("¡NUEVO PEDIDO RECIBIDO!", {
             duration: 8000,
-            icon: '🛍️',
             style: { background: '#0f172a', color: '#fff', borderRadius: '15px' }
           });
 
