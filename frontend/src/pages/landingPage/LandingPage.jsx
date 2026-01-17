@@ -43,9 +43,11 @@ const LandingPage = () => {
           es tu <span className="text-teal-500 drop-shadow-sm">Centro de Control</span>
         </h1>
         <p className="max-w-3xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-12 leading-relaxed">
-          Sincroniza tus <strong>ventas de catálogo</strong> con un sistema inteligente de <strong>citas en tiempo real</strong>.
-          Recibe pedidos estructurados, gestiona tu stock automáticamente y deja que QuickDrop proteja tu agenda.
-          <span className="text-slate-900 font-bold block mt-2">Todo directo a tu WhatsApp y a tú panel de control, sin intermediarios.</span>
+          Libera tu tiempo con un sistema que <strong className="text-slate-900">vende y agenda por ti</strong>.
+          Recibe órdenes impecables, automatiza tu stock y deja que QuickDrop blinde tu agenda 24/7.
+          <span className="text-slate-900 font-bold block mt-2 italic">
+            Tu negocio en piloto automático, directo a tu WhatsApp y panel de control.
+          </span>
         </p>
         <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
           <button
