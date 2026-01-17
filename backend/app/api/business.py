@@ -45,7 +45,6 @@ def get_public_business_data(
 ):
     tenant = db.query(base.Tenant).filter(base.Tenant.slug == slug).first()
     
-    # 1. Validamos existencia Y estado activo
     if not tenant or not getattr(tenant, 'is_active', True):
         raise HTTPException(
             status_code=404, 
@@ -63,7 +62,6 @@ def get_public_business_data(
         )
 
     total_items = query.count()
-    # Usamos joinedload para evitar el problema de N+1 consultas en variantes y extras
     items = query.options(
         joinedload(base.Item.variants),
         joinedload(base.Item.extras)
@@ -81,7 +79,7 @@ def get_public_business_data(
             "stock": item.stock,
             "variants": [{"id": v.id, "name": v.name, "price": v.price, "stock": v.stock} for v in item.variants],
             "extras": [{"id": e.id, "name": e.name, "price": e.price, "stock": e.stock} for e in item.extras],
-            "additional_images": item.additional_images
+            "additional_images": item.additional_images or [] # Aseguramos que sea lista
         })
 
     posts = db.query(base.Post).filter(base.Post.tenant_id == tenant.id)\
@@ -96,7 +94,7 @@ def get_public_business_data(
             "primary_color": tenant.primary_color,
             "secundary_color": tenant.secundary_color,
             "logo_url": tenant.logo_url,
-            "is_active": tenant.is_active, # Lo enviamos por si el front lo necesita
+            "is_active": tenant.is_active,
             "business_hours": [
                 {
                     "day_of_week": bh.day_of_week,
@@ -106,7 +104,8 @@ def get_public_business_data(
                 } for bh in tenant.business_hours
             ],
             "appointment_interval": tenant.appointment_interval,
-            "additional_images": item.additional_images
+            # Se eliminó la línea errónea de additional_images aquí, 
+            # ya que las imágenes pertenecen a los items, no al negocio.
         },
         "items": formatted_items,
         "total_items": total_items,
