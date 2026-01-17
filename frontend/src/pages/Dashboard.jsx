@@ -10,7 +10,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { ConfigBusiness } from '../components/PerfilCustom';
 import { ProductOptionsManager } from '../components/ProductOptionsManager';
-
+import AdminCalendar from '../components/dashboard/AdminCalendar';
 import alertSound from '../assets/sound.mp3';
 
 
@@ -55,20 +55,21 @@ const Dashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [postContent, setPostContent] = useState('');
-
+  const [orders, setOrders] = useState([]);
   // 1. FUNCIÓN DE CARGA DE DATOS (Se llama al iniciar y cuando hay un nuevo pedido)
   const fetchData = async () => {
     try {
       setLoading(true);
       const skip = currentPage * limit;
-      const [itemsRes, meRes] = await Promise.all([
+      const [itemsRes, meRes, ordersRes] = await Promise.all([
         api.get(`/business/items?skip=${skip}&limit=${limit}&q=${inputValue}`),
-        api.get('/business/me')
+        api.get('/business/me'),
+        api.get('/orders/my-orders')
       ]);
       setItems(itemsRes.data.items || []);
       setTotalItems(itemsRes.data.total || 0);
       setBusiness(meRes.data);
-
+      setOrders(ordersRes.data || []);
       const postsRes = await api.get('/social/my-posts');
       setPosts(Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.items || []));
     } catch (err) {
@@ -180,9 +181,9 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">{business.name || 'Cargando...'}</h1>
             <nav className="flex gap-2 mt-4">
-              {['main', 'orders', 'posts', 'profile'].map((tab) => (
+              {['main', 'orders', 'posts', 'profile', 'calendar'].map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
-                  {tab === 'main' ? 'Inventario' : tab === 'orders' ? 'Pedidos' : tab === 'posts' ? 'Muro' : 'Perfil'}
+                  {tab === 'main' ? 'Inventario' : tab === 'orders' ? 'Pedidos' : tab === 'posts' ? 'Muro' : tab === 'calendar' ? 'Calendario' : 'Perfil'}
                 </button>
               ))}
             </nav>
@@ -196,7 +197,7 @@ const Dashboard = () => {
         {/* CONTENIDO SEGÚN PESTAÑA */}
         {activeTab === 'orders' ? <OrdersDashboard tenantId={business.tenant_id} /> :
           activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> :
-            activeTab === 'profile' ? <ConfigBusiness /> : (
+            activeTab === 'profile' ? <ConfigBusiness /> : activeTab === 'calendar' ? <AdminCalendar orders={orders} /> : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
 
                 {/* STATS */}
