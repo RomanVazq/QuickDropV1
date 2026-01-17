@@ -243,7 +243,7 @@ async def create_product(
 
     new_item = base.Item(
         name=name, price=price, is_service=is_service, tenant_id=tenant_id,
-        image_url=image_url, stock=stock, description=description, created_at=datetime.utcnow(), additional_urls=additional_urls
+        image_url=image_url, stock=stock, description=description, created_at=datetime.utcnow(), additional_images=additional_urls
     )
     db.add(new_item)
     db.flush() # Para obtener el ID antes de insertar variantes/extras
