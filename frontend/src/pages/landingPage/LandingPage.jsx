@@ -34,42 +34,47 @@ const LandingPage = () => {
       </nav>
 
       {/* HERO SECTION */}
-      <header className="relative px-6 pt-20 pb-32 max-w-7xl mx-auto text-center">
-        <span className="inline-block bg-teal-50 text-teal-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 border border-teal-100 shadow-sm">
+      <header className="relative px-6 pt-24 pb-32 max-w-7xl mx-auto text-center">
+        <span className="inline-block bg-teal-50 text-teal-600 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-[0.25em] mb-10 border border-teal-100 shadow-sm animate-fade-in">
           Líder en Comercio Local e Inteligente
         </span>
-        <h1 className="text-6xl md:text-8xl font-black leading-[0.85] tracking-tighter uppercase italic mb-8 text-slate-900">
-          Más que un menú, <br />
-          es tu <span className="text-teal-500 drop-shadow-sm">Centro de Control</span>
+
+        <h1 className="text-5xl md:text-7xl font-black leading-[1.1] md:leading-[1.05] tracking-tighter uppercase italic mb-10 text-slate-900 py-2">
+          Más que un menú, <br className="hidden md:block" />
+          es tu <span className="text-teal-500 drop-shadow-sm inline-block md:mt-2">Centro de Control</span>
         </h1>
-        <p className="max-w-3xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-12 leading-relaxed">
-          Libera tu tiempo con un sistema que <strong className="text-slate-900">vende y agenda por ti</strong>.
+
+        <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-14 leading-relaxed">
+          Libera tu tiempo con un sistema que <strong className="text-slate-900 font-bold">vende y agenda por ti</strong>.
           Recibe órdenes impecables, automatiza tu stock y deja que QuickDrop blinde tu agenda 24/7.
-          <span className="text-slate-900 font-bold block mt-2 italic">
-            Tu negocio en piloto automático, directo a tu WhatsApp y panel de control.
+
+          <span className="text-slate-900 font-black block mt-6 italic border-t border-slate-100 pt-6">
+            Tu negocio en piloto automático, directo a tu WhatsApp.
           </span>
         </p>
-        <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+        <div className="flex flex-col md:flex-row gap-10 justify-center items-center">
           <button
             onClick={() => {
               const telefono = "523153545893";
               const mensaje = encodeURIComponent("¡Hola! Me interesa digitalizar mi negocio con QuickDrop. ¿Me podrían dar más información?");
               window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
             }}
-            className="bg-slate-900 text-white px-10 py-6 rounded-[28px] font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] group"
+            className="bg-slate-900 text-white px-12 py-7 rounded-[32px] font-black uppercase text-sm tracking-widest flex items-center justify-center gap-4 hover:scale-105 transition-all shadow-[0_20px_50px_-12px_rgba(0,0,0,0.4)] group active:scale-95"
           >
             Digitalizar mi negocio
-            <ArrowRight size={22} className="text-teal-400 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight size={22} className="text-teal-400 group-hover:translate-x-2 transition-transform" />
           </button>
 
-          <div className="flex flex-col items-start gap-1">
-            <div className="flex -space-x-2">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <div className="flex -space-x-3">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200" />
+                <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-slate-300 shadow-sm" />
               ))}
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-teal-500 flex items-center justify-center text-[10px] text-white font-bold">+50</div>
+              <div className="w-10 h-10 rounded-full border-4 border-white bg-teal-500 flex items-center justify-center text-[10px] text-white font-black shadow-sm">
+                +50
+              </div>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-tighter text-slate-400">
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">
               Negocios activos hoy
             </p>
           </div>
@@ -118,7 +123,7 @@ const LandingPage = () => {
                 desc: "Reserva de turnos en tiempo real para evitar choques. Mantén tú agenda organizada."
               }
             ].map((shop, i) => (
-              /* USAMOS LINK PARA QUE TODA LA TARJETA SEA UN BOTÓN */
+
               <Link
                 key={i}
                 to={`/shop${shop.slug}`}
