@@ -121,7 +121,7 @@ const LandingPage = () => {
               /* USAMOS LINK PARA QUE TODA LA TARJETA SEA UN BOTÓN */
               <Link
                 key={i}
-                to={`/shop/${shop.slug}`}
+                to={`/shop${shop.slug}`}
                 target='_blank'
                 className="group relative bg-slate-50 rounded-[32px] p-8 border-2 border-transparent hover:border-slate-900 hover:bg-white hover:shadow-[20px_20px_0px_0px_rgba(79,209,197,0.1)] transition-all duration-300 block"
               >
