@@ -115,7 +115,7 @@ const LandingPage = () => {
                 slug: "/barber-express",
                 type: "Cuidado Personal",
                 color: "from-slate-700 to-slate-900",
-                desc: "Reserva de turnos en tiempo real para evitar choques. Mantene tu agenda organizada."
+                desc: "Reserva de turnos en tiempo real para evitar choques. Mantén tú agenda organizada."
               }
             ].map((shop, i) => (
               /* USAMOS LINK PARA QUE TODA LA TARJETA SEA UN BOTÓN */
