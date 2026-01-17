@@ -180,7 +180,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">{business.name || 'Cargando...'}</h1>
-            <nav className="flex gap-2 mt-4">
+            <nav className="flex gap-4 mt-4 flex-wrap">
               {['main', 'orders', 'posts', 'profile', 'calendar'].map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
                   {tab === 'main' ? 'Inventario' : tab === 'orders' ? 'Pedidos' : tab === 'posts' ? 'Muro' : tab === 'calendar' ? 'Calendario' : 'Perfil'}
@@ -188,9 +188,9 @@ const Dashboard = () => {
               ))}
             </nav>
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
+          <div className="flex gap-2 w-full sm:w-[50%] flex-wrap md:w-auto">
             <button onClick={() => setIsPostModalOpen(true)} className="flex-1 md:flex-none bg-slate-100 text-slate-900 font-black text-xs uppercase px-6 py-3 rounded-2xl border border-slate-200"><Camera size={18} className="inline mr-2" /> Post</button>
-            <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-orange-500 text-white font-black text-xs uppercase px-6 py-3 rounded-2xl shadow-lg"><Plus size={18} className="inline mr-2" /> Item</button>
+            <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-orange-500 text-white font-black text-xs uppercase px-4 py-3 rounded-2xl shadow-lg"><Plus size={18} className="inline mr-2" /> Item</button>
           </div>
         </div>
 

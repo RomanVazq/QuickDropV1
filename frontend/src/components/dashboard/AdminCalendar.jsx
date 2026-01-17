@@ -22,7 +22,7 @@ const AdminCalendar = ({ orders = [] }) => {
   const renderHeader = () => (
     <div className="flex items-center justify-between px-8 py-8 bg-slate-900 rounded-t-[40px] text-white">
       <div>
-        <h2 className="text-3xl font-black uppercase italic tracking-tighter">Agenda <span className="text-teal-400">QuickDrop</span></h2>
+        <h2 className="text-3xl font-black uppercase italic tracking-tighter">Agenda</h2>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{format(currentMonth, 'MMMM yyyy', { locale: es })}</p>
       </div>
       <div className="flex gap-2">

@@ -102,8 +102,8 @@ const LandingPage = () => {
                 desc: "Gestión de citas para consultas nutricionales y venta de suplementos."
               },
               {
-                name: "GRYNDX",
-                slug: "/gryndx",
+                name: "Eco Fitness",
+                slug: "/eco-fitness",
                 type: "Ropa Deportiva",
                 color: "from-orange-400 to-red-600",
                 desc: "Catálogo de ropa con gestión de tallas, colores y stock sincronizado."
@@ -113,16 +113,17 @@ const LandingPage = () => {
                 slug: "/barber-express",
                 type: "Cuidado Personal",
                 color: "from-slate-700 to-slate-900",
-                desc: "Reserva de turnos en tiempo real con WebSockets para evitar choques."
+                desc: "Reserva de turnos en tiempo real para evitar choques. Mantene tu agenda organizada."
               }
             ].map((shop, i) => (
               /* USAMOS LINK PARA QUE TODA LA TARJETA SEA UN BOTÓN */
               <Link
                 key={i}
-                to={"/shop/" + shop.slug}
+                to={`/shop/${shop.slug}`}
+                target='_blank'
                 className="group relative bg-slate-50 rounded-[32px] p-8 border-2 border-transparent hover:border-slate-900 hover:bg-white hover:shadow-[20px_20px_0px_0px_rgba(79,209,197,0.1)] transition-all duration-300 block"
               >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${shop.color} mb-6 shadow-lg transform group-hover:rotate-6 group-hover:scale-110 transition-transform`} />
+
 
                 <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-2 block">
                   {shop.type}
@@ -170,7 +171,7 @@ const LandingPage = () => {
                 <span className="text-slate-400 font-bold ml-2 italic text-sm">MXN /mes</span>
               </div>
               <ul className="space-y-4 mb-10 flex-grow">
-                {["1 crédito = 1 pedido recibido", "Recargas desde $50 MXN", "Variantes e ilimitados", "Soporte por chat"].map((item, i) => (
+                {["1 crédito = 1 pedido recibido", "Recargas desde $50 MXN", "Variantes y extras ilimitados", "Soporte por chat", "Agenda para ver tus citas pendientes"].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 font-bold text-sm text-slate-600">
                     <Check size={18} className="text-green-500" strokeWidth={3} /> {item}
                   </li>
@@ -188,17 +189,25 @@ const LandingPage = () => {
               <h3 className="text-3xl font-black uppercase italic mb-2">PREMIUM</h3>
               <p className="text-teal-600 font-bold text-xs mb-6 uppercase tracking-widest">Negocios con flujo</p>
               <div className="mb-8 text-slate-900">
-                <span className="text-5xl font-black">$350</span>
+                <div>
+                  <span className="text-md font-bold italic line-through text-slate-400 mr-2" style={{ color: 'red' }}>$350</span>
+                  <span className='text-md font-bold italic text-slate-400'>Oferta de lanzamiento</span>
+                </div>
+                <span className="text-5xl font-black">$250</span>
                 <span className="font-bold ml-2 italic text-slate-400 text-sm">MXN /mes</span>
               </div>
               <ul className="space-y-4 mb-10 flex-grow">
-                {["Pedidos ilimitados (0 créditos)", "Dashboard avanzado", "Gestión de stock inteligente", "Soporte Prioritario 24/7"].map((item, i) => (
+                {["Todo lo del plan Emprendedor", "Pedidos ilimitados (0 créditos)", "Gestión de stock inteligente", "Soporte Prioritario 24/7"].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 font-bold text-sm text-slate-800">
                     <Check size={18} className="text-teal-500" strokeWidth={4} /> {item}
                   </li>
                 ))}
               </ul>
-              <button className="w-full bg-teal-500 text-slate-900 border-2 border-slate-900 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 transition-all">
+              <button onClick={() => {
+                const telefono = "523153545893";
+                const mensaje = encodeURIComponent("¡Hola! Me interesa digitalizar mi negocio con QuickDrop. ¿Me podrían dar más información?");
+                window.open(`https://wa.me/${telefono}?text=${mensaje}`, '_blank');
+              }} className="w-full bg-teal-500 text-slate-900 border-2 border-slate-900 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:scale-95 transition-all">
                 Suscribirme ahora
               </button>
             </div>

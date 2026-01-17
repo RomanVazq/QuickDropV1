@@ -44,12 +44,8 @@ const renderItemCard = (item) => {
       >
         {/* Imagen */}
         <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-[1.5rem] bg-slate-100 border border-slate-50">
-          <img src={item.image_url  } className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={item.name} />
-          {item.is_service && (
-            <div className="absolute top-2 left-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-lg">
-              <NotebookPenIcon size={10} className="text-orange-400 fill-white" />
-            </div>
-          )}
+          <img src={item.image_url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={item.name} />
+
         </div>
 
         {/* Info y Acciones */}

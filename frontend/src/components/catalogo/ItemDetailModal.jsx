@@ -27,12 +27,6 @@ const ItemDetailModal = ({ isOpen, onClose, item, onAdd }) => {
             className="w-full h-full object-cover"
             alt={item.name}
           />
-          {item.is_service && (
-            <div className="absolute bottom-6 left-6 bg-slate-900 text-white px-4 py-2 rounded-2xl flex items-center gap-2 border border-white/20 shadow-xl">
-              <Zap size={14} className="text-orange-400 fill-orange-400" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Servicio VIP</span>
-            </div>
-          )}
         </div>
 
         {/* Información */}
