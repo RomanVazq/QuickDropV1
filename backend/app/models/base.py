@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, ForeignKey, DateTime, Text, Boolean, Integer
+from sqlalchemy import Column, String, Float, ForeignKey, DateTime, Text, Boolean, Integer, ARRAY
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 from sqlalchemy.sql import func
@@ -54,6 +54,7 @@ class Item(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    additional_images = Column(ARRAY(String), default=[])
     
     tenant = relationship("Tenant", back_populates="items")
     variants = relationship("ItemVariant", back_populates="item", cascade="all, delete-orphan")

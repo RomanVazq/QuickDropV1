@@ -31,6 +31,7 @@ class ItemBase(BaseModel):
     is_service: bool = False
     image_url: Optional[str] = None
     stock: int = Field(default=0)
+    additional_images: List[str] = Field(default=[], max_items=3)
 
 class ItemCreate(ItemBase):
     # Opcionalmente puedes permitir crear variantes al mismo tiempo
@@ -43,6 +44,7 @@ class ItemResponse(ItemBase):
     # Incluimos las listas para que el PublicCatalog las vea
     variants: List[VariantResponse] = []
     extras: List[ExtraResponse] = []
+    additional_images: List[str] = []
     
     class Config:
         from_attributes = True

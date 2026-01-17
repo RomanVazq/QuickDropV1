@@ -80,7 +80,8 @@ def get_public_business_data(
             "is_service": item.is_service,
             "stock": item.stock,
             "variants": [{"id": v.id, "name": v.name, "price": v.price, "stock": v.stock} for v in item.variants],
-            "extras": [{"id": e.id, "name": e.name, "price": e.price, "stock": e.stock} for e in item.extras]
+            "extras": [{"id": e.id, "name": e.name, "price": e.price, "stock": e.stock} for e in item.extras],
+            "additional_images": item.additional_images
         })
 
     posts = db.query(base.Post).filter(base.Post.tenant_id == tenant.id)\
@@ -104,7 +105,8 @@ def get_public_business_data(
                     "is_closed": bh.is_closed
                 } for bh in tenant.business_hours
             ],
-            "appointment_interval": tenant.appointment_interval
+            "appointment_interval": tenant.appointment_interval,
+            "additional_images": item.additional_images
         },
         "items": formatted_items,
         "total_items": total_items,
@@ -212,6 +214,7 @@ async def create_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+    additional_images: List[UploadFile] = File(None),
     variants: Optional[str] = Form(None), # Nuevo: Recibe JSON string
     extras: Optional[str] = Form(None),   # Nuevo: Recibe JSON string
     db: Session = Depends(get_db),
@@ -224,9 +227,23 @@ async def create_product(
         supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"content-type": image.content_type})
         image_url = supabase.storage.from_("images").get_public_url(file_path)
 
+    additional_urls = []
+    if additional_images:
+        for img in additional_images:
+            if img.filename: # Verificar que el archivo no esté vacío
+                content = await img.read()
+                path = f"{tenant_id}/extras/{uuid.uuid4().hex[:8]}_{img.filename}"
+                supabase.storage.from_("images").upload(
+                    path=path, 
+                    file=content, 
+                    file_options={"content-type": img.content_type}
+                )
+                url = supabase.storage.from_("images").get_public_url(path)
+                additional_urls.append(url)    
+
     new_item = base.Item(
         name=name, price=price, is_service=is_service, tenant_id=tenant_id,
-        image_url=image_url, stock=stock, description=description, created_at=datetime.utcnow()
+        image_url=image_url, stock=stock, description=description, created_at=datetime.utcnow(), additional_urls=additional_urls
     )
     db.add(new_item)
     db.flush() # Para obtener el ID antes de insertar variantes/extras
@@ -257,6 +274,7 @@ async def update_product(
     stock: float = Form(0.0),
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
+    additional_images: List[UploadFile] = File(None),
     variants: Optional[str] = Form(None), # Nuevo
     extras: Optional[str] = Form(None),   # Nuevo
     db: Session = Depends(get_db),
@@ -271,6 +289,21 @@ async def update_product(
         file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}.{image.filename.split('.')[-1]}"
         supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"content-type": image.content_type, "upsert": "true"})
         item.image_url = supabase.storage.from_("images").get_public_url(file_path)
+
+    if additional_images:
+        additional_urls = []
+        for img in additional_images:
+            if img.filename: # Verificar que el archivo no esté vacío
+                content = await img.read()
+                path = f"{tenant_id}/extras/{uuid.uuid4().hex[:8]}_{img.filename}"
+                supabase.storage.from_("images").upload(
+                    path=path, 
+                    file=content, 
+                    file_options={"content-type": img.content_type}
+                )
+                url = supabase.storage.from_("images").get_public_url(path)
+                additional_urls.append(url)    
+        item.additional_images = additional_urls    
 
     item.name, item.price, item.is_service, item.stock = name, price, is_service, stock
     item.description = description or ""

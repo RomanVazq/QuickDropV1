@@ -56,6 +56,7 @@ const Dashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [postContent, setPostContent] = useState('');
   const [orders, setOrders] = useState([]);
+  const [additionalFiles, setAdditionalFiles] = useState([null, null, null]);
   // 1. FUNCIÓN DE CARGA DE DATOS (Se llama al iniciar y cuando hay un nuevo pedido)
   const fetchData = async () => {
     try {
@@ -86,7 +87,7 @@ const Dashboard = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'localhost:8000';
     const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0];
-    
+
     const wsUrl = `${protocol}://${host}/ws/${business.tenant_id}`;
     const socket = new WebSocket(wsUrl);
 
@@ -129,7 +130,14 @@ const Dashboard = () => {
     Object.keys(newProduct).forEach(key => formData.append(key, newProduct[key]));
     formData.append("variants", JSON.stringify(variants));
     formData.append("extras", JSON.stringify(extras));
+
     if (file) formData.append("image", file);
+    additionalFiles.forEach((f) => {
+      if (f) {
+
+        formData.append("additional_images", f);
+      }
+    });
 
     try {
       if (isEditing) await api.put(`/business/items/${editingItem.id}`, formData);
@@ -334,6 +342,37 @@ const Dashboard = () => {
 
               <ProductOptionsManager title="Variantes" options={variants} setOptions={setVariants} type="variant" />
               <ProductOptionsManager title="Extras" options={extras} setOptions={setExtras} type="extra" />
+              {/* --- SECCIÓN IMÁGENES ADICIONALES --- */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black uppercase text-slate-400 ml-2">Galería de Variantes (Máx 3)</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[0, 1, 2].map((i) => (
+                    <label key={i} className={`relative flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-3xl transition-all cursor-pointer 
+                ${additionalFiles[i] ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200 bg-slate-50 hover:border-slate-400'}`}>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const newFiles = [...additionalFiles];
+                          newFiles[i] = e.target.files[0];
+                          setAdditionalFiles(newFiles);
+                        }}
+                      />
+                      {additionalFiles[i] ? (
+                        <div className="flex flex-col items-center">
+                          <div className="bg-teal-500 text-white p-1 rounded-full mb-1">
+                            <Plus size={12} className="rotate-45" />
+                          </div>
+                          <span className="text-[8px] font-black uppercase truncate max-w-[60px]">{additionalFiles[i].name}</span>
+                        </div>
+                      ) : (
+                        <Plus size={20} className="text-slate-300" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               <label className="block p-4 bg-slate-900 text-white rounded-[2rem] text-center cursor-pointer hover:bg-black transition-all">
                 <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
