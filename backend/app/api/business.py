@@ -172,36 +172,31 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
 async def get_items(
     skip: int = 0, 
     limit: int = 5, 
-    q: str = None, # 1. Agregamos el parámetro opcional de búsqueda
+    q: str = None, 
     db: Session = Depends(get_db), 
     current_user = Depends(get_current_tenant_id)
 ):
-    # 2. Base de la consulta
     query = db.query(base.Item).options(
         joinedload(base.Item.variants),
         joinedload(base.Item.extras)
     ).filter(base.Item.tenant_id == current_user)
     
-    # 3. Aplicamos el filtro de búsqueda si existe "q"
     if q:
-        search_filter = f"%{q}%" # Formato para búsqueda parcial (LIKE)
+        search_filter = f"%{q}%"
         query = query.filter(
             or_(
-                base.Item.name.ilike(search_filter),        # ilike no distingue entre Mayús/Minús
+                base.Item.name.ilike(search_filter),
                 base.Item.description.ilike(search_filter)
             )
         )
     
-    # 4. Contamos el total (después de filtrar)
     total = query.count()
     
-    # 5. Ejecutamos la consulta con orden y paginación
-    items = query.order_by(base.Item.updated_at.desc()).offset(skip).limit(limit).all()
+    items_db = query.order_by(base.Item.updated_at.desc()).offset(skip).limit(limit).all()
     
-    # 6. Retornamos la respuesta
     return {
         "total": total, 
-        "items": items, 
+        "items": items_db, # FastAPI se encarga de serializar la lista items_db
         "skip": skip, 
         "limit": limit
     }
