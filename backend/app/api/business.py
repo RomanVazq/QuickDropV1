@@ -269,8 +269,9 @@ async def update_product(
     description: str = Form(""),
     image: Optional[UploadFile] = File(None),
     additional_images: List[UploadFile] = File(None),
-    variants: Optional[str] = Form(None), # Nuevo
-    extras: Optional[str] = Form(None),   # Nuevo
+    existing_additional_images: Optional[str] = Form("[]"), 
+    variants: Optional[str] = Form(None),
+    extras: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     tenant_id: str = Depends(get_current_tenant_id)
 ):
@@ -278,16 +279,20 @@ async def update_product(
     if not item:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
+    # 1. Procesar Imagen Principal
     if image:
         file_content = await image.read()
         file_path = f"{tenant_id}/{uuid.uuid4().hex[:8]}.{image.filename.split('.')[-1]}"
         supabase.storage.from_("images").upload(path=file_path, file=file_content, file_options={"content-type": image.content_type, "upsert": "true"})
         item.image_url = supabase.storage.from_("images").get_public_url(file_path)
 
+    # 2. PROCESAR IMÁGENES ADICIONALES
+    kept_urls = json.loads(existing_additional_images) if existing_additional_images else []
+    
+    new_urls = []
     if additional_images:
-        additional_urls = []
         for img in additional_images:
-            if img.filename: # Verificar que el archivo no esté vacío
+            if img.filename: 
                 content = await img.read()
                 path = f"{tenant_id}/extras/{uuid.uuid4().hex[:8]}_{img.filename}"
                 supabase.storage.from_("images").upload(
@@ -296,21 +301,23 @@ async def update_product(
                     file_options={"content-type": img.content_type}
                 )
                 url = supabase.storage.from_("images").get_public_url(path)
-                additional_urls.append(url)    
-        item.additional_images = additional_urls    
+                new_urls.append(url)
+    
+    item.additional_images = kept_urls + new_urls
 
+    # 3. Actualizar campos básicos
     item.name, item.price, item.is_service, item.stock = name, price, is_service, stock
     item.description = description or ""
     item.updated_at = datetime.utcnow()
 
-    # Actualizar Variantes (Borrar y re-crear es lo más eficiente)
+    # 4. Actualizar Variantes
     if variants is not None:
         db.query(base.ItemVariant).filter(base.ItemVariant.item_id == item.id).delete()
         v_list = json.loads(variants)
         for v in v_list:
             db.add(base.ItemVariant(item_id=item.id, name=v['name'], price=float(v['price']), stock=int(v.get('stock', 0))))
 
-    # Actualizar Extras
+    # 5. Actualizar Extras
     if extras is not None:
         db.query(base.ItemExtra).filter(base.ItemExtra.item_id == item.id).delete()
         e_list = json.loads(extras)
@@ -318,6 +325,7 @@ async def update_product(
             db.add(base.ItemExtra(item_id=item.id, name=e['name'], price=float(e['price']), stock=int(e.get('stock', 0))))
 
     db.commit()
+    db.refresh(item)
     return item
 
 @router.delete("/items/{item_id}")
