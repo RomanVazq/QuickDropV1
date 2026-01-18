@@ -4,11 +4,10 @@ import api from '../services/api';
 import { ShoppingBag, Search, X, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import { Header } from '../components/Header';
+import { Header } from '../components/common';
 import PublicCatalog from '../components/catalogo/PublicCatalog';
 import PublicCart from '../components/catalogo/PublicCart';
-import ServiceModal from '../components/ServiceModal';
-import ItemOptionsModal from '../components/ItemOptionsModal';
+import { ServiceModal, ItemOptionsModal } from '../components/modals';
 import ItemDetailModal from '../components/catalogo/ItemDetailModal';
 import utils from '../utils/utils';
 

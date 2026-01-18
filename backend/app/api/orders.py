@@ -192,7 +192,8 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
                 "total": final_total_amount,
                 "delivery_type": order_data.delivery_type,
                 "items_count": len(order_data.items),
-                "wallet_balance": int(wallet.balance)
+                "wallet_balance": int(wallet.balance),
+                "appointment": order_data.appointment_datetime.isoformat() if order_data.appointment_datetime else None
             }
         )
     except Exception: pass
@@ -211,7 +212,8 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
         "total": final_total_amount,
         "business_phone": tenant.phone if tenant.phone else "",
         "resumen": "\n".join(resumen_items),
-        "delivery_type": order_data.delivery_type
+        "delivery_type": order_data.delivery_type,
+        "appointment_datetime": order_data.appointment_datetime.isoformat() if order_data.appointment_datetime else None
     }
 
 @router.get("/my-orders")

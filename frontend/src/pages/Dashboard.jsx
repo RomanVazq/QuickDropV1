@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import React, { useState } from 'react';
 import OrdersDashboard from './OrdersDashboard';
 import {
   Package, ShoppingBag, Plus, Trash2, X, Pencil, Camera,
@@ -7,167 +6,54 @@ import {
   DollarSign, CheckCircle, XCircle, Calendar, ChevronLeft, ChevronRight, Settings,
   Search, MessageSquare, Layers, Tag
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { ConfigBusiness } from '../components/PerfilCustom';
 import { ProductOptionsManager } from '../components/ProductOptionsManager';
 import AdminCalendar from '../components/dashboard/AdminCalendar';
 import AdminConfig from '../components/dashboard/AdminConfig';
-import alertSound from '../assets/sound.mp3';
-
-// --- COMPONENTE: VISTA DE MURO ---
-const PostsView = ({ posts, onDelete }) => {
-  if (posts.length === 0) return <div className="py-20 text-center font-black opacity-20 uppercase italic tracking-widest">No hay publicaciones aún</div>;
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-      {posts.map(post => (
-        <div key={post.id} className="bg-white rounded-[32px] overflow-hidden border border-slate-100 group">
-          <div className="relative aspect-square overflow-hidden bg-slate-100">
-            {post.image_url && <img src={post.image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
-            <button onClick={() => onDelete(post.id)} className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2 rounded-full text-red-500 shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity"><Trash2 size={18} /></button>
-          </div>
-          <div className="p-6">
-            <p className="text-slate-600 text-sm font-medium leading-relaxed mb-4 line-clamp-3">{post.content}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+import PostsView from '../components/dashboard/PostsView';
+import { useBusinessData, useWebSocket, useProductManagement, usePostManagement } from '../hooks';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('main');
-  const [items, setItems] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const [business, setBusiness] = useState({ name: '', slug: '', tenant_id: '', wallet: { balance: 0 } });
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
-  const [inputValue, setInputValue] = useState('');
-  const limit = 5;
+  const limit = 8;
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: 0, description: '', is_service: false });
-  const [variants, setVariants] = useState([]);
-  const [extras, setExtras] = useState([]);
-  const [file, setFile] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [postContent, setPostContent] = useState('');
-  const [orders, setOrders] = useState([]);
+  const {
+    items, setItems,
+    posts, setPosts,
+    business,
+    loading,
+    currentPage, setCurrentPage,
+    totalItems,
+    inputValue, setInputValue,
+    orders,
+    fetchData
+  } = useBusinessData();
 
-  // Estados para imágenes adicionales
-  const [additionalFiles, setAdditionalFiles] = useState([null, null, null]);
-  const [existingAdditionalImages, setExistingAdditionalImages] = useState([null, null, null]);
+  useWebSocket(business.tenant_id, fetchData);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const skip = currentPage * limit;
-      const [itemsRes, meRes, ordersRes] = await Promise.all([
-        api.get(`/business/items?skip=${skip}&limit=${limit}&q=${inputValue}`),
-        api.get('/business/me'),
-        api.get('/orders/my-orders')
-      ]);
-      setItems(itemsRes.data.items || []);
-      setTotalItems(itemsRes.data.total || 0);
-      setBusiness(meRes.data);
-      setOrders(ordersRes.data || []);
-      const postsRes = await api.get('/social/my-posts');
-      setPosts(Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.items || []));
-    } catch (err) {
-      console.error(err);
-    } finally { setLoading(false); }
-  };
+  const {
+    isModalOpen, setIsModalOpen,
+    newProduct, setNewProduct,
+    variants, setVariants,
+    extras, setExtras,
+    file: productFile, setFile: setProductFile,
+    isEditing,
+    editingItem,
+    additionalFiles, setAdditionalFiles,
+    existingAdditionalImages, setExistingAdditionalImages,
+    resetForm,
+    openEdit,
+    handleProductSubmit,
+    handleDelete
+  } = useProductManagement(fetchData);
 
-  useEffect(() => {
-    if (!business.tenant_id) return;
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'localhost:8000';
-    const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0];
-    const wsUrl = `${protocol}://${host}/ws/${business.tenant_id}`;
-    const socket = new WebSocket(wsUrl);
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.event === "NEW_ORDER") {
-        new Audio(alertSound).play().catch(() => { });
-        toast.success("¡NUEVO PEDIDO!");
-        fetchData();
-      }
-    };
-    return () => socket.close();
-  }, [business.tenant_id]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => fetchData(), 400);
-    return () => clearTimeout(handler);
-  }, [currentPage, inputValue]);
-
-  const resetForm = () => {
-    setIsModalOpen(false); setIsPostModalOpen(false); setIsEditing(false);
-    setEditingItem(null); setFile(null); setVariants([]); setExtras([]);
-    setAdditionalFiles([null, null, null]);
-    setExistingAdditionalImages([null, null, null]);
-    setNewProduct({ name: '', price: '', stock: 0, description: '', is_service: false });
-  };
-
-  const openEdit = (item) => {
-    setEditingItem(item);
-    setNewProduct({ name: item.name, price: item.price, stock: item.stock || 0, description: item.description || '', is_service: item.is_service || false });
-    setVariants(item.variants || []);
-    setExtras(item.extras || []);
-
-    // Cargar imágenes existentes en la galería
-    const existing = [null, null, null];
-    if (item.additional_images) {
-      item.additional_images.forEach((url, i) => { if (i < 3) existing[i] = url; });
-    }
-    setExistingAdditionalImages(existing);
-
-    setIsEditing(true);
-    setIsModalOpen(true);
-  };
-
-  const handleProductSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    Object.keys(newProduct).forEach(key => formData.append(key, newProduct[key]));
-    formData.append("variants", JSON.stringify(variants));
-    formData.append("extras", JSON.stringify(extras));
-
-    // Mandamos las URLs que sobrevivieron para que el backend sepa cuáles mantener
-    const keptImages = existingAdditionalImages.filter(img => img !== null);
-    formData.append("existing_additional_images", JSON.stringify(keptImages));
-
-    if (file) formData.append("image", file);
-    additionalFiles.forEach((f) => { if (f) formData.append("additional_images", f); });
-
-    try {
-      if (isEditing) await api.put(`/business/items/${editingItem.id}`, formData);
-      else await api.post("/business/items", formData);
-      toast.success("¡Operación exitosa!");
-      resetForm();
-      fetchData();
-    } catch (err) { toast.error("Error al guardar"); }
-  };
-
-  const handleDelete = async (itemId) => {
-    if (!window.confirm("¿Eliminar este ítem?")) return;
-    try {
-      await api.delete(`/business/items/${itemId}`);
-      toast.success("Eliminado");
-      fetchData();
-    } catch (err) { toast.error("Error al eliminar"); }
-  };
-
-  const handleDeletePost = async (postId) => {
-    if (!window.confirm("¿Eliminar esta publicación?")) return;
-    try {
-      await api.delete(`/social/posts/${postId}`);
-      toast.success("Publicación eliminada");
-      setPosts(posts.filter(post => post.id !== postId));
-    } catch (err) { toast.error("Error al eliminar"); }
-  };
+  const {
+    isPostModalOpen, setIsPostModalOpen,
+    postContent, setPostContent,
+    file: postFile, setFile: setPostFile,
+    handleDeletePost,
+    handlePostSubmit
+  } = usePostManagement(fetchData, setPosts, posts);
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] p-4 md:p-10 font-sans text-slate-900">
@@ -393,8 +279,8 @@ const Dashboard = () => {
               </div>
 
               <label className="block p-4 bg-slate-900 text-white rounded-[2rem] text-center cursor-pointer hover:bg-black transition-all">
-                <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
-                <span className="text-xs font-black uppercase">{file ? file.name : "Subir Foto Principal"}</span>
+                <input type="file" onChange={e => setProductFile(e.target.files[0])} className="hidden" accept="image/*" />
+                <span className="text-xs font-black uppercase">{productFile ? productFile.name : "Subir Foto Principal"}</span>
               </label>
 
               <button type="submit" className="w-full bg-orange-500 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
@@ -421,15 +307,15 @@ const Dashboard = () => {
               try {
                 await api.post('/social/posts', formData);
                 toast.success("¡Publicado!");
-                setPostContent(''); setFile(null); setIsPostModalOpen(false);
+                setPostContent(''); setPostFile(null); setIsPostModalOpen(false);
                 fetchData();
               } catch (err) { toast.error("Error"); }
             }} className="space-y-6">
               <textarea placeholder="¿Qué hay de nuevo?" className="w-full p-6 bg-slate-50 rounded-[2rem] font-bold outline-none min-h-[150px] resize-none" value={postContent} onChange={(e) => setPostContent(e.target.value)} required />
               <label className="block p-4 border-2 border-dashed border-slate-200 text-slate-400 rounded-[2rem] text-center cursor-pointer hover:border-slate-900 hover:text-slate-900 transition-all">
-                <input type="file" onChange={e => setFile(e.target.files[0])} className="hidden" accept="image/*" />
+                <input type="file" onChange={e => setPostFile(e.target.files[0])} className="hidden" accept="image/*" />
                 <ImageIcon size={24} className="mx-auto mb-1" />
-                <span className="text-[10px] font-black uppercase">{file ? file.name : "Imagen"}</span>
+                <span className="text-[10px] font-black uppercase">{postFile ? postFile.name : "Imagen"}</span>
               </label>
               <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase shadow-lg">Publicar</button>
             </form>
