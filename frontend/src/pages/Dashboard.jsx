@@ -55,7 +55,7 @@ const Dashboard = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [postContent, setPostContent] = useState('');
   const [orders, setOrders] = useState([]);
-  
+
   // Estados para imágenes adicionales
   const [additionalFiles, setAdditionalFiles] = useState([null, null, null]);
   const [existingAdditionalImages, setExistingAdditionalImages] = useState([null, null, null]);
@@ -90,7 +90,7 @@ const Dashboard = () => {
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.event === "NEW_ORDER") {
-        new Audio(alertSound).play().catch(() => {});
+        new Audio(alertSound).play().catch(() => { });
         toast.success("¡NUEVO PEDIDO!");
         fetchData();
       }
@@ -116,14 +116,14 @@ const Dashboard = () => {
     setNewProduct({ name: item.name, price: item.price, stock: item.stock || 0, description: item.description || '', is_service: item.is_service || false });
     setVariants(item.variants || []);
     setExtras(item.extras || []);
-    
+
     // Cargar imágenes existentes en la galería
     const existing = [null, null, null];
     if (item.additional_images) {
       item.additional_images.forEach((url, i) => { if (i < 3) existing[i] = url; });
     }
     setExistingAdditionalImages(existing);
-    
+
     setIsEditing(true);
     setIsModalOpen(true);
   };
@@ -134,7 +134,7 @@ const Dashboard = () => {
     Object.keys(newProduct).forEach(key => formData.append(key, newProduct[key]));
     formData.append("variants", JSON.stringify(variants));
     formData.append("extras", JSON.stringify(extras));
-    
+
     // Mandamos las URLs que sobrevivieron para que el backend sepa cuáles mantener
     const keptImages = existingAdditionalImages.filter(img => img !== null);
     formData.append("existing_additional_images", JSON.stringify(keptImages));
@@ -193,81 +193,107 @@ const Dashboard = () => {
         {/* CONTENIDO SEGÚN PESTAÑA */}
         {activeTab === 'orders' ? <OrdersDashboard tenantId={business.tenant_id} /> :
           activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> :
-            activeTab === 'profile' ? <ConfigBusiness /> : 
+            activeTab === 'profile' ? <ConfigBusiness /> :
               activeTab === 'calendar' ? <AdminCalendar orders={orders} /> : activeTab === 'config' ? <AdminConfig /> : (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                    <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Balance</p>
-                    <p className="text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                      <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Balance</p>
+                      <p className="text-4xl font-black text-emerald-500 italic">${business.wallet?.balance || 0}</p>
+                    </div>
+                    <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                      <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Catálogo</p>
+                      <p className="text-4xl font-black italic text-slate-900">{totalItems} <span className="text-sm not-italic opacity-30">ITEMS</span></p>
+                    </div>
                   </div>
-                  <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                    <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Catálogo</p>
-                    <p className="text-4xl font-black italic text-slate-900">{totalItems} <span className="text-sm not-italic opacity-30">ITEMS</span></p>
-                  </div>
-                </div>
 
-                <div className="mb-6">
-                  <div className="relative group">
-                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${inputValue ? 'text-slate-900' : 'text-slate-400'}`} size={18} />
-                    <input
-                      type="text"
-                      value={inputValue}
-                      onChange={(e) => { setInputValue(e.target.value); setCurrentPage(0); }}
-                      placeholder="Buscar producto o servicio..."
-                      className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-12 pr-12 text-sm font-bold shadow-sm focus:ring-2 focus:ring-slate-900/5 transition-all outline-none"
-                    />
+                  <div className="mb-6">
+                    <div className="relative group">
+                      <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${inputValue ? 'text-slate-900' : 'text-slate-400'}`} size={18} />
+                      <input
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => { setInputValue(e.target.value); setCurrentPage(0); }}
+                        placeholder="Buscar producto o servicio..."
+                        className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-12 pr-12 text-sm font-bold shadow-sm focus:ring-2 focus:ring-slate-900/5 transition-all outline-none"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b border-slate-100">
-                        <tr>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Producto</th>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center">Info</th>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {loading ? (
-                          [...Array(limit)].map((_, i) => (
-                            <tr key={i} className="animate-pulse">
-                              <td className="px-8 py-6"><div className="h-14 w-14 bg-slate-100 rounded-2xl" /></td>
-                              <td colSpan="2"></td>
-                            </tr>
-                          ))
-                        ) : (
-                          items.map(item => (
-                            <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
-                              <td className="px-8 py-6 flex items-center gap-4">
-                                {item.image_url ? <img src={item.image_url} className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" /> : <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center"><ImageIcon className="text-slate-300" /></div>}
-                                <div>
-                                  <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
-                                  <p className="text-teal-500 font-black text-sm mt-1">${item.price}</p>
-                                </div>
-                              </td>
-                              <td className="px-8 py-6 text-center">
-                                {item.is_service ? 
-                                  <span className="text-[9px] font-black px-2 py-1 bg-teal-50 text-teal-600 rounded-md uppercase">Servicio</span> : 
-                                  <span className="text-[9px] font-black px-2 py-1 bg-orange-50 text-orange-600 rounded-md uppercase">Stock: {item.stock}</span>}
-                              </td>
-                              <td className="px-8 py-6 text-right">
-                                <div className="flex justify-end gap-2">
-                                  <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl"><Pencil size={18} /></button>
-                                  <button onClick={() => handleDelete(item.id)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl"><Trash2 size={18} /></button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                          <tr>
+                            <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400">Producto</th>
+                            <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-center">Info</th>
+                            <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {loading ? (
+                            [...Array(limit)].map((_, i) => (
+                              <tr key={i} className="animate-pulse">
+                                <td className="px-8 py-6"><div className="h-14 w-14 bg-slate-100 rounded-2xl" /></td>
+                                <td colSpan="2"></td>
+                              </tr>
+                            ))
+                          ) : (
+                            items.map(item => (
+                              <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
+                                <td className="px-8 py-6 flex items-center gap-4">
+                                  {item.image_url ? <img src={item.image_url} className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" /> : <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center"><ImageIcon className="text-slate-300" /></div>}
+                                  <div>
+                                    <p className="font-bold text-slate-800 text-lg leading-none">{item.name}</p>
+                                    <p className="text-teal-500 font-black text-sm mt-1">${item.price}</p>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                  {item.is_service ?
+                                    <span className="text-[9px] font-black px-2 py-1 bg-teal-50 text-teal-600 rounded-md uppercase">Servicio</span> :
+                                    <span className="text-[9px] font-black px-2 py-1 bg-orange-50 text-orange-600 rounded-md uppercase">Stock: {item.stock}</span>}
+                                </td>
+                                <td className="px-8 py-6 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <button onClick={() => openEdit(item)} className="p-3 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl"><Pencil size={18} /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="p-3 text-slate-400 hover:text-red-500 bg-slate-50 rounded-2xl"><Trash2 size={18} /></button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="bg-slate-50 px-8 py-4 flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase text-slate-400">
+                        Mostrando <span className="text-slate-900">{items.length}</span> de <span className="text-slate-900">{totalItems}</span> items
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={currentPage === 0}
+                          onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                          className="p-2 rounded-xl border border-slate-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 transition-all"
+                        >
+                          <ChevronLeft size={18} />
+                        </button>
+
+                        <div className="flex items-center px-4 bg-white border border-slate-200 rounded-xl">
+                          <span className="text-xs font-black italic">PAG {currentPage + 1}</span>
+                        </div>
+
+                        <button
+                          disabled={(currentPage + 1) * limit >= totalItems}
+                          onClick={() => setCurrentPage(prev => prev + 1)}
+                          className="p-2 rounded-xl border border-slate-200 bg-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 transition-all"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
       </div>
 
       {/* MODAL PRODUCTO (INVENTARIO) */}
@@ -282,7 +308,7 @@ const Dashboard = () => {
             <form onSubmit={handleProductSubmit} className="space-y-5">
               <input type="text" placeholder="Nombre" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-slate-900" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} required />
               <textarea placeholder="Descripción..." className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none min-h-[80px] resize-none" value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black uppercase text-slate-400 ml-2">Precio</p>
@@ -316,7 +342,7 @@ const Dashboard = () => {
                       <div key={i} className="relative group">
                         <label className={`flex flex-col items-center justify-center h-24 border-2 border-dashed rounded-3xl overflow-hidden transition-all cursor-pointer 
                           ${(isExisting || isNew) ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200 bg-slate-50 hover:border-slate-400'}`}>
-                          
+
                           <input
                             type="file"
                             className="hidden"
