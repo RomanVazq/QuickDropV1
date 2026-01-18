@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +15,7 @@ from app.api import orders, auth, business, social, super_admin
 from app.models.base import Tenant, Item
 
 from app.core.websocket_manager import manager
+
 # 1. Inicializar base de datos
 Base.metadata.create_all(bind=engine)
 
@@ -62,8 +68,9 @@ async def verify_origin_key(request: Request, call_next):
 # 5. Configuración de CORS
 # Se ejecuta DESPUÉS del middleware de seguridad en el flujo de respuesta
 app.add_middleware(
+   
     CORSMiddleware,
-    allow_origins=["https://quickdrop.shop","https://www.quickdrop.shop"], 
+    allow_origins=["https://quickdrop.shop","https://www.quickdrop.shop", "http://localhost:5173"], 
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"], # Esto permite que el header 'X-Internal-Client' pase sin problemas

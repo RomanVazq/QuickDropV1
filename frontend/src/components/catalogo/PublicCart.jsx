@@ -55,7 +55,13 @@ const PublicCart = ({
       };
 
       const response = await api.post(`/orders/public/place-order/${slug}`, payload);
-      const { order_id, resumen, business_phone, appointment } = response.data;
+      const { order_id, resumen, business_phone, appointment_datetime } = response.data;
+
+      let formattedAppointment = null;
+      if (appointment_datetime) {
+        const date = new Date(appointment_datetime);
+        formattedAppointment = date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      }
 
       localStorage.removeItem(`cart_${slug}`);
       if (setCart) setCart({}); 
@@ -69,7 +75,7 @@ const PublicCart = ({
                           `🛍️ *Detalle:* \n${resumen}\n\n` +
                           `💰 *TOTAL FINAL: $${finalTotal.toFixed(2)}*\n` +
                           `--------------------------\n` +
-                          `${hasService ? `📅 *CITA:* ${appointment}` : `${deliveryEmoji} ${deliveryText}`}\n` +
+                          `${hasService && formattedAppointment ? `📅 *CITA:* ${formattedAppointment}` : !hasService ? `${deliveryEmoji} ${deliveryText}` : ''}\n` +
                           `📝 *NOTAS:* ${formData.notes || 'Sin notas'}\n\n` +
                           `✅ _Pedido enviado desde QuickDrop_`;
 

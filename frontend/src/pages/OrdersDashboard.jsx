@@ -1,94 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import React, { useState, useEffect } from 'react';
 import { Package, CheckCircle, XCircle, MapPin, User, FileText, ShoppingBasket, Layers, Tag } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import notificationSoundFile from '../assets/sound.mp3'; 
+import notificationSoundFile from '../assets/sound.mp3';
+import { useOrders, useWebSocket } from '../hooks'; 
 
-const OrdersDashboard = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+const OrdersDashboard = ({ tenantId }) => {
   const [filter, setFilter] = useState('pending');
-  const [tenantId, setTenantId] = useState(null);
 
-  // 1. Obtener el tenant_id del usuario (del perfil o del token)
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.tenant_id) setTenantId(user.tenant_id);
-  }, []);
+  const { orders, loading, updateStatus, fetchOrders } = useOrders(filter);
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    try {
-      const endpoint = filter === 'all' 
-        ? '/orders/my-orders' 
-        : `/orders/my-orders?status=${filter}`;
-      
-      const res = await api.get(endpoint);
-      const data = Array.isArray(res.data) ? res.data : (res.data.items || []);
-
-      const statusPriority = { 'pending': 0, 'completed': 1, 'cancelled': 2 };
-
-      const sortedOrders = [...data].sort((a, b) => {
-        if (statusPriority[a.status] !== statusPriority[b.status]) {
-          return statusPriority[a.status] - statusPriority[b.status];
-        }
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-
-      setOrders(sortedOrders);
-    } catch (err) {
-      toast.error("Error al cargar pedidos");
-    } finally {
-      setLoading(false);
-    }
-  }, [filter]);
-
-  // 2. LÓGICA DE TIEMPO REAL PARA EL NEGOCIO
-  useEffect(() => {
-    if (!tenantId) return;
-
-    const isLocal = window.location.hostname === 'localhost';
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'localhost:8000';
-    const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0];
-    
-    const socket = new WebSocket(`${protocol}://${host}/ws/${tenantId}`);
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.event === "NEW_ORDER") {
-        // Reproducir sonido de alerta
-        const audio = new Audio(notificationSoundFile);
-        audio.play().catch(() => console.log("Audio bloqueado"));
-
-        toast.success("¡NUEVO PEDIDO RECIBIDO!", {
-          duration: 6000,
-          icon: '🔥',
-          style: { background: '#0f172a', color: '#fff', fontWeight: 'bold' }
-        });
-
-        // Recargar la lista automáticamente
-        fetchOrders();
-      }
-    };
-
-    return () => socket.close();
-  }, [tenantId, fetchOrders]);
-
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
-
-  const updateStatus = async (id, newStatus) => {
-    try {
-      await api.patch(`/orders/${id}/status`, { status: newStatus });
-      toast.success(`Estado actualizado: ${newStatus}`);
-      fetchOrders(); 
-    } catch (err) {
-      toast.error("Error al actualizar");
-    }
-  };
+  useWebSocket(tenantId, fetchOrders);
 
   return (
     <div className="p-6 max-w-6xl mx-auto animate-in fade-in duration-500">

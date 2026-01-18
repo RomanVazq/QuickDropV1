@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import api from '../../services/api';
 import { useParams } from 'react-router-dom';
-import alertSound from '../assets/sound.mp3';
+import alertSound from '../../assets/sound.mp3';
 
 const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interval, tenantId }) => {
   const { slug } = useParams();
@@ -53,7 +53,7 @@ const ServiceModal = ({ isOpen, onClose, item, onConfirm, businessHours, interva
             
             // Sonido y actualización de estado
             const audio = new Audio(alertSound);
-            audio.play().catch(() => console.log("Audio bloqueado por el navegador"));
+            audio.play().catch(() => {});
             
             setBusyTimes(prev => prev.includes(bookedHour) ? prev : [...prev, bookedHour]);
             setTimeout(() => setShowAlert(false), 6000);
