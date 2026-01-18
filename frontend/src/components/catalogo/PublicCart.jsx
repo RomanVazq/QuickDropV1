@@ -164,7 +164,7 @@ const PublicCart = ({
                 className={`p-5 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all duration-300 ${deliveryType === 'pickup' ? 'border-slate-900 bg-slate-900 text-white shadow-xl scale-[1.02]' : 'border-slate-200 bg-white text-slate-400 opacity-60 hover:opacity-100'}`}
               >
                 <Store size={22} />
-                <span className="text-[11px] font-black uppercase">Recoger local</span>
+                <span className="text-[11px] font-black uppercase">Recoger en local</span>
               </button>
               
               {business?.has_delivery && (
