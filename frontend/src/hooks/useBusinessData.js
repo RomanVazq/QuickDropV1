@@ -10,7 +10,7 @@ const useBusinessData = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [orders, setOrders] = useState([]);
-  const limit = 5;
+  const limit = 10;
 
   const fetchData = async () => {
     try {
