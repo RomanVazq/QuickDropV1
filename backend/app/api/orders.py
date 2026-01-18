@@ -29,6 +29,7 @@ class OrderCreateSchema(BaseModel):
     # Notas como "Corte tipo fade" o "Preguntar por promoción"
     notes: Optional[str] = None
     items: List[OrderItemSchema]
+    delivery_type: str = "pickup"
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,14 +49,13 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
     if not wallet or wallet.balance <= 0:
         raise HTTPException(status_code=403, detail="El negocio no tiene créditos disponibles para recibir pedidos.")
 
-    total_price = 0
+    total_items_price = 0
     resumen_items = []
     order_id = str(uuid.uuid4())
-    db_items = [] # Lista para los registros de la tabla OrderItem
+    db_items = [] 
 
     # 3. Procesar cada ítem del pedido
     for item_input in order_data.items:
-        # Buscamos el producto base
         product = db.query(base.Item).filter(base.Item.id == item_input.product_id).first()
         if not product:
             raise HTTPException(status_code=400, detail=f"Producto {item_input.product_id} no existe")
@@ -63,7 +63,7 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
         current_unit_price = product.price
         variant_name = None
         
-        # --- LÓGICA DE VARIANTES (Talla, Color, Sabor, etc.) ---
+        # --- LÓGICA DE VARIANTES ---
         if item_input.variant_name:
             variant = db.query(base.ItemVariant).filter(
                 base.ItemVariant.item_id == product.id,
@@ -73,32 +73,26 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
             if not variant:
                 raise HTTPException(status_code=400, detail=f"Variante '{item_input.variant_name}' no disponible")
             
-            # Descuento de stock en Variante
             if not product.is_service:
                 if variant.stock < item_input.quantity:
                     raise HTTPException(status_code=400, detail=f"Stock insuficiente: {product.name} ({variant.name})")
                 variant.stock -= item_input.quantity
-            
-            if not product.is_service:
-                # El stock del producto padre también se descuenta
                 if product.stock < item_input.quantity:
-                    raise HTTPException(status_code=400, detail=f"Stock insuficiente para: {product.name} solo hay: {int(product.stock)}")
+                    raise HTTPException(status_code=400, detail=f"Stock insuficiente: {product.name}")
                 product.stock -= item_input.quantity
 
             current_unit_price = variant.price
             variant_name = variant.name
         
-        # --- LÓGICA DE PRODUCTO SIMPLE (Sin variante) ---
         else:
             if not product.is_service:
                 if product.stock < item_input.quantity:
                     raise HTTPException(status_code=400, detail=f"Stock insuficiente: {product.name}")
                 product.stock -= item_input.quantity
 
-        # --- LÓGICA DE EXTRAS (Ingredientes adicionales, complementos) ---
+        # --- LÓGICA DE EXTRAS ---
         extras_price_sum = 0
         if item_input.extras_names:
-            # Convertimos el string "Queso, Tocino" en lista ["Queso", "Tocino"]
             names_list = [n.strip() for n in item_input.extras_names.split(",")]
             extras_db = db.query(base.ItemExtra).filter(
                 base.ItemExtra.item_id == product.id,
@@ -106,21 +100,17 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
             ).all()
             
             for extra in extras_db:
-                # Descuento de stock en cada Extra
                 if not product.is_service:
-                    # El extra se descuenta multiplicado por la cantidad de productos pedidos
                     if extra.stock < item_input.quantity:
-                        raise HTTPException(status_code=400, detail=f"Stock insuficiente para el extra: {extra.name}")
+                        raise HTTPException(status_code=400, detail=f"Stock insuficiente extra: {extra.name}")
                     extra.stock -= item_input.quantity
-                
                 extras_price_sum += extra.price
 
         # 4. Cálculo de totales por línea
         line_unit_total = current_unit_price + extras_price_sum
         line_total = line_unit_total * item_input.quantity
-        total_price += line_total
+        total_items_price += line_total
 
-        # Crear el objeto de OrderItem (detalle del pedido)
         db_items.append(base.OrderItem(
             order_id=order_id,
             item_id=product.id,
@@ -133,12 +123,24 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
             total_line_price=line_total
         ))
 
-        # Preparar texto para el resumen de WhatsApp
         extras_str = f" (+{item_input.extras_names})" if item_input.extras_names else ""
         variant_str = f" [{variant_name}]" if variant_name else ""
-        resumen_items.append(f"- {item_input.quantity}x {product.name}{variant_str}{extras_str}")
+        resumen_items.append(f"- {item_input.quantity}x {product.name}{variant_str}{extras_str}: ${line_total}")
 
-    # 5. Crear la Orden Principal
+    # --- 5. LÓGICA DE COSTO DE ENVÍO ---
+    applied_delivery_cost = 0.0
+    if order_data.delivery_type == "delivery":
+        if not tenant.has_delivery:
+            raise HTTPException(status_code=400, detail="Este negocio no cuenta con servicio a domicilio.")
+        
+        if not order_data.address or len(order_data.address) < 5:
+            raise HTTPException(status_code=400, detail="La dirección es obligatoria para pedidos a domicilio.")
+        
+        applied_delivery_cost = tenant.delivery_price
+
+    final_total_amount = total_items_price + applied_delivery_cost
+
+    # 6. Crear la Orden Principal
     new_order = base.Order(
         id=order_id,
         tenant_id=tenant.id,
@@ -146,15 +148,16 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
         address=order_data.address,
         appointment_datetime=order_data.appointment_datetime,
         notes=order_data.notes,
-        total_amount=total_price,
+        total_amount=final_total_amount,
+        delivery_type=order_data.delivery_type,
+        delivery_cost=applied_delivery_cost,
         status="pending"
     )
     
-    # 6. Gestión de Wallet (Descontar 1 crédito por pedido)
+    # 7. Gestión de Wallet
     previous_bal = wallet.balance
     wallet.balance -= 1
     
-    # Registrar la transacción en el historial
     history = base.WalletTransaction(
         tenant_id=tenant.id,
         amount=-1,
@@ -163,22 +166,22 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
         reason=f"Pedido: {order_id[:6]} | Cliente: {order_data.customer_name}"
     )
     
-    # Si el saldo llega a 0, desactivar el negocio
     if wallet.balance <= 0:
         tenant.is_active = False
 
-    # 7. Persistencia en Base de Datos
+    # 8. Guardar en Base de Datos
     try:
         db.add(new_order)
         db.add(history)
         db.add_all(db_items)
-        db.commit() # Aquí se guardan los cambios de stock, wallet y orden
+        db.commit()
         db.refresh(new_order)
     except Exception as e:
         db.rollback()
         print(f"Error Database: {e}")
-        raise HTTPException(status_code=500, detail="Error interno al procesar el pedido")
+        raise HTTPException(status_code=500, detail="Error al procesar el pedido")
 
+    # 9. Notificación WebSocket
     try:
         await manager.broadcast_to_tenant(
             tenant_id=tenant.id,
@@ -186,24 +189,29 @@ async def place_order(slug: str, order_data: OrderCreateSchema, db: Session = De
                 "event": "NEW_ORDER",
                 "order_id": order_id[:8].upper(),
                 "customer": order_data.customer_name,
-                "total": total_price,
+                "total": final_total_amount,
+                "delivery_type": order_data.delivery_type,
                 "items_count": len(order_data.items),
-                "appointment": new_order.appointment_datetime.isoformat() if new_order.appointment_datetime else None,
-                "wallet_balance": int(wallet.balance) # Útil para avisar al admin que se le acaban los créditos
+                "wallet_balance": int(wallet.balance)
             }
         )
-    except Exception as ws_error:
-        # Usamos un try/except aquí para que si el WebSocket falla por algo, 
-        # no le de un error 500 al cliente que ya pagó/hizo el pedido.
-        print(f"Error enviando notificación WS: {ws_error}")    
+    except Exception: pass
 
-    # 8. Respuesta al Cliente
+    # 10. Preparar Resumen Final para WhatsApp
+    entrega_str = "A domicilio" if order_data.delivery_type == "delivery" else "Recoger en local"
+    if applied_delivery_cost > 0:
+        resumen_items.append(f"\nSubtotal: ${total_items_price}")
+        resumen_items.append(f"Envío: ${applied_delivery_cost}")
+    
+    resumen_items.append(f"\nTOTAL: ${final_total_amount}")
+    resumen_items.append(f"Tipo de entrega: {entrega_str}")
+
     return {
         "order_id": order_id[:8].upper(),
-        "total": total_price,
+        "total": final_total_amount,
         "business_phone": tenant.phone if tenant.phone else "",
-        "appointment": new_order.appointment_datetime.strftime("%d/%m/%Y %H:%M") if new_order.appointment_datetime else "A convenir",
-        "resumen": "\n".join(resumen_items)
+        "resumen": "\n".join(resumen_items),
+        "delivery_type": order_data.delivery_type
     }
 
 @router.get("/my-orders")

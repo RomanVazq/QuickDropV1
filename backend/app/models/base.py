@@ -20,6 +20,8 @@ class Tenant(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     appointment_interval = Column(Integer, default=30)
+    has_delivery = Column(Boolean, default=False)
+    delivery_price = Column(Float, default=0.0)
 
     # Relaciones
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
@@ -91,6 +93,8 @@ class Order(Base):
     total_amount = Column(Float, nullable=False)
     status = Column(String, default="pending") 
     created_at = Column(DateTime, default=datetime.utcnow)
+    delivery_type = Column(String, default="pickup") # "pickup" o "delivery"
+    delivery_cost = Column(Float, default=0.0)
 
     tenant = relationship("Tenant", back_populates="orders")
     order_items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

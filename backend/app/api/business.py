@@ -9,7 +9,7 @@ from sqlalchemy import or_
 from jose import jwt
 from supabase import create_client, Client
 from app.schemas.BusinessHourSchema import BusinessHoursList, BusinessProfileUpdate
-
+from app.schemas.BusinessConfig import DeliveryConfigUpdate
 from app.database.session import get_db
 from app.models import base
 from app.api.auth import oauth2_scheme
@@ -95,6 +95,8 @@ def get_public_business_data(
             "secundary_color": tenant.secundary_color,
             "logo_url": tenant.logo_url,
             "is_active": tenant.is_active,
+            "has_delivery": tenant.has_delivery,
+            "delivery_price": tenant.delivery_price,
             "business_hours": [
                 {
                     "day_of_week": bh.day_of_week,
@@ -157,6 +159,8 @@ def get_business_info(db: Session = Depends(get_db), tenant_id: str = Depends(ge
         "phone": tenant.phone,
         "is_active": tenant.is_active,
         "appointment_interval": tenant.appointment_interval,
+        "has_delivery": tenant.has_delivery,
+        "delivery_price": tenant.delivery_price,
         "business_hours": [
             {
                 "day_of_week": bh.day_of_week,
@@ -407,6 +411,21 @@ def update_profile(
     # AGREGAMOS EL INTERVALO AQUÍ
     if hasattr(payload, 'appointment_interval'):
         tenant.appointment_interval = payload.appointment_interval
+
+    db.commit()
+    return {"status": "success"}
+
+@router.patch("/update-delivery")    
+def update_delivery_config(
+    payload: DeliveryConfigUpdate,
+    db: Session = Depends(get_db),
+    tenant_id: str = Depends(get_current_tenant_id)
+):
+    tenant = db.query(base.Tenant).filter(base.Tenant.id == tenant_id).first()
+    
+    # Actualizamos los campos de entrega
+    tenant.has_delivery = payload.has_delivery
+    tenant.delivery_price = payload.delivery_price
 
     db.commit()
     return {"status": "success"}

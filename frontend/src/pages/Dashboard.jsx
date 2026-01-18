@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import { ConfigBusiness } from '../components/PerfilCustom';
 import { ProductOptionsManager } from '../components/ProductOptionsManager';
 import AdminCalendar from '../components/dashboard/AdminCalendar';
+import AdminConfig from '../components/dashboard/AdminConfig';
 import alertSound from '../assets/sound.mp3';
 
 // --- COMPONENTE: VISTA DE MURO ---
@@ -176,9 +177,9 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">{business.name || 'Cargando...'}</h1>
             <nav className="flex gap-4 mt-4 flex-wrap">
-              {['main', 'orders', 'posts', 'profile', 'calendar'].map((tab) => (
+              {['main', 'orders', 'posts', 'profile', 'calendar', 'config'].map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl border transition-all ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
-                  {tab === 'main' ? 'Inventario' : tab === 'orders' ? 'Pedidos' : tab === 'posts' ? 'Muro' : tab === 'calendar' ? 'Calendario' : 'Perfil'}
+                  {tab === 'main' ? 'Inventario' : tab === 'orders' ? 'Pedidos' : tab === 'posts' ? 'Muro' : tab === 'calendar' ? 'Calendario' : tab === 'config' ? 'Configuración' : 'Perfil'}
                 </button>
               ))}
             </nav>
@@ -193,7 +194,7 @@ const Dashboard = () => {
         {activeTab === 'orders' ? <OrdersDashboard tenantId={business.tenant_id} /> :
           activeTab === 'posts' ? <PostsView posts={posts} onDelete={handleDeletePost} /> :
             activeTab === 'profile' ? <ConfigBusiness /> : 
-              activeTab === 'calendar' ? <AdminCalendar orders={orders} /> : (
+              activeTab === 'calendar' ? <AdminCalendar orders={orders} /> : activeTab === 'config' ? <AdminConfig /> : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                   <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm">
